@@ -5,17 +5,34 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
+import { downloadCSV } from "@/lib/downloadUtils";
 
 export default function ExpensesPage() {
   const { expenses, addExpense, deleteExpense, cows } = useFarmStore();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ cowId: "", category: "", description: "", amount: "" });
   const total = expenses.reduce((s, e) => s + e.amount, 0);
+
+  const handleDownloadExpenses = () => {
+    try {
+      const data = expenses.map(e => ({
+        Date: e.date,
+        Category: e.category,
+        Description: e.description || "—",
+        Cow: getCowName(e.cowId),
+        "Amount (KES)": e.amount
+      }));
+      downloadCSV(data, `expenses-${new Date().toISOString().split('T')[0]}.csv`);
+      toast.success("Expenses downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to download expenses");
+    }
+  };
 
   const handleAdd = () => {
     if (!form.category || !form.amount) return toast.error("Fill required fields");
@@ -32,6 +49,10 @@ export default function ExpensesPage() {
       <PageHeader title="Expenses" subtitle={`Total: KES ${total.toLocaleString()}`} actions={
         <>
           <PrintButton />
+          <Button variant="outline" onClick={handleDownloadExpenses}>
+            <Download className="h-4 w-4 mr-1" />
+            Download CSV
+          </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" />Add Expense</Button></DialogTrigger>
             <DialogContent>

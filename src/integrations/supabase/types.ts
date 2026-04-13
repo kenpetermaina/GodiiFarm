@@ -7,14 +7,599 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
+      breeding_records: {
+        Row: {
+          cow_id: string
+          created_at: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cow_id: string
+          created_at?: string
+          id?: string
+          status: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cow_id?: string
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "breeding_records_cow_id_fkey"
+            columns: ["cow_id"]
+            isOneToOne: false
+            referencedRelation: "cows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "breeding_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      cows: {
+        Row: {
+          breed: string | null
+          created_at: string
+          date_of_birth: string | null
+          gender: string | null
+          id: string
+          name: string | null
+          status: string
+          tag_number: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          breed?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          gender?: string | null
+          id?: string
+          name?: string | null
+          status?: string
+          tag_number: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          breed?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          gender?: string | null
+          id?: string
+          name?: string | null
+          status?: string
+          tag_number?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cows_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      feed_records: {
+        Row: {
+          cow_id: string
+          created_at: string
+          feed_type: string
+          feeding_time: string
+          id: string
+          quantity: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cow_id: string
+          created_at?: string
+          feed_type: string
+          feeding_time: string
+          id?: string
+          quantity: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cow_id?: string
+          created_at?: string
+          feed_type?: string
+          feeding_time?: string
+          id?: string
+          quantity?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_records_cow_id_fkey"
+            columns: ["cow_id"]
+            isOneToOne: false
+            referencedRelation: "cows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      health_records: {
+        Row: {
+          cow_id: string
+          created_at: string
+          id: string
+          illness: string
+          treatment: string | null
+          updated_at: string
+          user_id: string
+          vet_name: string | null
+          visit_date: string
+        }
+        Insert: {
+          cow_id: string
+          created_at?: string
+          id?: string
+          illness: string
+          treatment?: string | null
+          updated_at?: string
+          user_id: string
+          vet_name?: string | null
+          visit_date: string
+        }
+        Update: {
+          cow_id?: string
+          created_at?: string
+          id?: string
+          illness?: string
+          treatment?: string | null
+          updated_at?: string
+          user_id?: string
+          vet_name?: string | null
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_records_cow_id_fkey"
+            columns: ["cow_id"]
+            isOneToOne: false
+            referencedRelation: "cows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      milk_records: {
+        Row: {
+          amount_liters: number
+          cow_id: string
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          session: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_liters: number
+          cow_id: string
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          session?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_liters?: number
+          cow_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          session?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milk_records_cow_id_fkey"
+            columns: ["cow_id"]
+            isOneToOne: false
+            referencedRelation: "cows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milk_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
       [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+          }
+        ]
+      }
+      cows: {
+        Row: {
+          age: number
+          breed: string | null
+          created_at: string
+          health: string
+          id: string
+          last_checkup: string
+          name: string
+          tag: string
+          updated_at: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          age?: number
+          breed?: string | null
+          created_at?: string
+          health?: string
+          id?: string
+          last_checkup?: string
+          name: string
+          tag: string
+          updated_at?: string
+          user_id: string
+          weight?: number
+        }
+        Update: {
+          age?: number
+          breed?: string | null
+          created_at?: string
+          health?: string
+          id?: string
+          last_checkup?: string
+          name?: string
+          tag?: string
+          updated_at?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cows_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      feed_records: {
+        Row: {
+          cow_id: string
+          created_at: string
+          date: string
+          feed_type: string
+          id: string
+          quantity: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cow_id: string
+          created_at?: string
+          date: string
+          feed_type: string
+          id?: string
+          quantity: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cow_id?: string
+          created_at?: string
+          date?: string
+          feed_type?: string
+          id?: string
+          quantity?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_records_cow_id_fkey"
+            columns: ["cow_id"]
+            isOneToOne: false
+            referencedRelation: "cows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      health_records: {
+        Row: {
+          cow_id: string
+          created_at: string
+          date: string
+          id: string
+          status: string
+          symptoms: string | null
+          treatment: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cow_id: string
+          created_at?: string
+          date: string
+          id: string
+          status: string
+          symptoms?: string | null
+          treatment?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cow_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          status?: string
+          symptoms?: string | null
+          treatment?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_records_cow_id_fkey"
+            columns: ["cow_id"]
+            isOneToOne: false
+            referencedRelation: "cows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      milk_records: {
+        Row: {
+          amount: number
+          cow_id: string
+          created_at: string
+          date: string
+          id: string
+          session: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          cow_id: string
+          created_at?: string
+          date: string
+          id?: string
+          session: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          cow_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          session?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milk_records_cow_id_fkey"
+            columns: ["cow_id"]
+            isOneToOne: false
+            referencedRelation: "cows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milk_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      notes: {
+        Row: {
+          content: string
+          cow_id: string
+          created_at: string
+          date: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          cow_id: string
+          created_at?: string
+          date: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          cow_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_cow_id_fkey"
+            columns: ["cow_id"]
+            isOneToOne: false
+            referencedRelation: "cows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

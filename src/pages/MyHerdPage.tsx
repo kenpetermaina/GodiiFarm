@@ -17,19 +17,18 @@ export default function MyHerdPage() {
       <Card>
         <CardContent className="p-4">
           <Table>
-            <TableHeader><TableRow><TableHead>Tag</TableHead><TableHead>Name</TableHead><TableHead>Breed</TableHead><TableHead>Age</TableHead><TableHead>Weight (kg)</TableHead><TableHead>Health</TableHead><TableHead>Last Checkup</TableHead><TableHead className="no-print">Actions</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Tag Number</TableHead><TableHead>Name</TableHead><TableHead>Breed</TableHead><TableHead>Date of Birth</TableHead><TableHead>Gender</TableHead><TableHead>Status</TableHead><TableHead className="no-print">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {cows.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell>{c.tag}</TableCell><TableCell>{c.name}</TableCell><TableCell>{c.breed}</TableCell>
-                  <TableCell>{c.age} yrs</TableCell><TableCell>{c.weight}</TableCell>
+                  <TableCell>{c.tag_number}</TableCell><TableCell>{c.name}</TableCell><TableCell>{c.breed}</TableCell>
+                  <TableCell>{c.date_of_birth ? new Date(c.date_of_birth).toLocaleDateString() : 'N/A'}</TableCell><TableCell>{c.gender}</TableCell>
                   <TableCell>
-                    <Badge variant={c.health === "Healthy" ? "default" : c.health === "Monitoring" ? "secondary" : "destructive"}
-                      className={c.health === "Healthy" ? "bg-success" : c.health === "Monitoring" ? "bg-warning" : ""}>
-                      {c.health}
+                    <Badge variant={c.status === "healthy" ? "default" : "destructive"}
+                      className={c.status === "healthy" ? "bg-success" : ""}>
+                      {c.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{c.lastCheckup}</TableCell>
                   <TableCell className="no-print">
                     <Button variant="ghost" size="icon" onClick={() => { deleteCow(c.id); toast.success("Deleted"); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                   </TableCell>

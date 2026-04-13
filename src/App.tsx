@@ -30,18 +30,49 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Error getting session:", error);
+        } else {
+          console.log("Initial session loaded:", session ? "Session exists" : "No session");
+        }
+        setSession(session);
+
+        // Data is automatically loaded from localStorage via Zustand persist middleware
+      } catch (err) {
+        console.error("Exception getting session:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session ? "session exists" : "no session");
       setSession(session);
       setLoading(false);
+
+      // Data persists in localStorage regardless of auth state
+      // No need to load/clear data on auth changes
     });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!session) return <LoginPage />;
   return <>{children}</>;
 }

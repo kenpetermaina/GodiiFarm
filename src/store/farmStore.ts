@@ -1,56 +1,82 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
+// Check if data exists in localStorage on app start
+const checkLocalStorage = () => {
+  try {
+    const data = localStorage.getItem('godii-farm-storage');
+    if (data) {
+      console.log('Found existing data in localStorage:', JSON.parse(data));
+    } else {
+      console.log('No existing data found in localStorage');
+    }
+  } catch (error) {
+    console.error('Error checking localStorage:', error);
+  }
+};
+
+// Call this when the module loads
+checkLocalStorage();
+
+// Types
 export interface Cow {
   id: string;
-  tag: string;
+  tag_number: string;
   name: string;
-  breed: string;
-  age: number;
-  weight: number;
-  health: 'Healthy' | 'Monitoring' | 'Sick';
-  lastCheckup: string;
+  breed?: string;
+  date_of_birth?: string;
+  gender: 'male' | 'female';
+  status: 'healthy' | 'sick' | 'sold' | 'dead';
+  created_at: string;
+  updated_at: string;
 }
 
 export interface MilkRecord {
   id: string;
+  cow_id: string;
   date: string;
-  cowId: string;
-  amount: number;
-  session: 'Morning' | 'Evening';
-}
-
-export interface FeedRecord {
-  id: string;
-  date: string;
-  cowId: string;
-  feedType: string;
-  quantity: string;
+  amount_liters: number;
+  session: 'Morning' | 'Lunch' | 'Evening';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface HealthRecord {
   id: string;
-  date: string;
-  cowId: string;
-  status: string;
-  symptoms: string;
-  treatment: string;
+  cow_id: string;
+  illness: string;
+  treatment?: string;
+  vet_name?: string;
+  visit_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeedRecord {
+  id: string;
+  cow_id: string;
+  feed_type: string;
+  quantity: number;
+  feeding_time: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Note {
   id: string;
-  date: string;
-  cowId: string;
+  title: string;
   content: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface BreedingRecord {
   id: string;
-  cowId: string;
+  cow_id: string;
   status: string;
-  heatDate: string;
-  serviceDate: string;
-  expectedCalving: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Alert {
@@ -65,7 +91,6 @@ export interface Alert {
 export interface Expense {
   id: string;
   date: string;
-  cowId: string;
   category: string;
   description: string;
   amount: number;
@@ -90,6 +115,7 @@ export interface Worker {
 }
 
 interface FarmStore {
+  // Data
   cows: Cow[];
   milkRecords: MilkRecord[];
   feedRecords: FeedRecord[];
@@ -100,18 +126,24 @@ interface FarmStore {
   expenses: Expense[];
   incomeRecords: IncomeRecord[];
   workers: Worker[];
-  addCow: (cow: Cow) => void;
-  updateCow: (cow: Cow) => void;
+
+  // Loading states
+  loading: boolean;
+  error: string | null;
+
+  // Actions
+  addCow: (cow: Omit<Cow, 'id' | 'created_at' | 'updated_at'>) => void;
+  updateCow: (id: string, updates: Partial<Cow>) => void;
   deleteCow: (id: string) => void;
-  addMilkRecord: (r: MilkRecord) => void;
+  addMilkRecord: (record: Omit<MilkRecord, 'id' | 'created_at' | 'updated_at'>) => void;
   deleteMilkRecord: (id: string) => void;
-  addFeedRecord: (r: FeedRecord) => void;
+  addFeedRecord: (record: Omit<FeedRecord, 'id' | 'created_at' | 'updated_at'>) => void;
   deleteFeedRecord: (id: string) => void;
-  addHealthRecord: (r: HealthRecord) => void;
+  addHealthRecord: (record: Omit<HealthRecord, 'id' | 'created_at' | 'updated_at'>) => void;
   deleteHealthRecord: (id: string) => void;
-  addNote: (n: Note) => void;
+  addNote: (note: Omit<Note, 'id' | 'created_at' | 'updated_at'>) => void;
   deleteNote: (id: string) => void;
-  addBreedingRecord: (r: BreedingRecord) => void;
+  addBreedingRecord: (record: Omit<BreedingRecord, 'id' | 'created_at' | 'updated_at'>) => void;
   deleteBreedingRecord: (id: string) => void;
   addAlert: (a: Alert) => void;
   toggleAlert: (id: string) => void;
@@ -123,34 +155,21 @@ interface FarmStore {
   addWorker: (w: Worker) => void;
   updateWorker: (w: Worker) => void;
   deleteWorker: (id: string) => void;
+  clearError: () => void;
+
+  // Data management
+  exportData: () => string;
+  importData: (jsonData: string) => boolean;
+  clearAllData: () => void;
+  checkStorage: () => string | null;
 }
-
-const defaultCows: Cow[] = [
-  { id: '1', tag: 'C-001', name: 'Bella', breed: 'Holstein', age: 4, weight: 580, health: 'Healthy', lastCheckup: '2026-04-08' },
-  { id: '2', tag: 'C-002', name: 'Daisy', breed: 'Jersey', age: 3, weight: 420, health: 'Healthy', lastCheckup: '2026-04-07' },
-  { id: '3', tag: 'C-003', name: 'Rosie', breed: 'Guernsey', age: 5, weight: 500, health: 'Monitoring', lastCheckup: '2026-04-05' },
-  { id: '4', tag: 'C-004', name: 'Clover', breed: 'Holstein', age: 2, weight: 490, health: 'Healthy', lastCheckup: '2026-04-09' },
-  { id: '5', tag: 'C-005', name: 'Buttercup', breed: 'Angus', age: 6, weight: 610, health: 'Sick', lastCheckup: '2026-04-10' },
-];
-
-const defaultMilkRecords: MilkRecord[] = [
-  { id: 'm1', date: '2026-04-08', cowId: '1', amount: 18, session: 'Morning' },
-  { id: 'm2', date: '2026-04-08', cowId: '2', amount: 12, session: 'Morning' },
-  { id: 'm3', date: '2026-04-09', cowId: '1', amount: 22, session: 'Morning' },
-  { id: 'm4', date: '2026-04-09', cowId: '2', amount: 15, session: 'Morning' },
-  { id: 'm5', date: '2026-04-09', cowId: '3', amount: 20, session: 'Morning' },
-  { id: 'm6', date: '2026-04-09', cowId: '4', amount: 10, session: 'Evening' },
-  { id: 'm7', date: '2026-04-10', cowId: '1', amount: 32, session: 'Morning' },
-  { id: 'm8', date: '2026-04-10', cowId: '2', amount: 24, session: 'Morning' },
-  { id: 'm9', date: '2026-04-10', cowId: '3', amount: 30, session: 'Morning' },
-  { id: 'm10', date: '2026-04-10', cowId: '4', amount: 12, session: 'Evening' },
-];
 
 export const useFarmStore = create<FarmStore>()(
   persist(
-    (set) => ({
-      cows: defaultCows,
-      milkRecords: defaultMilkRecords,
+    (set, get) => ({
+      // Initial state
+      cows: [],
+      milkRecords: [],
       feedRecords: [],
       healthRecords: [],
       notes: [],
@@ -159,30 +178,295 @@ export const useFarmStore = create<FarmStore>()(
       expenses: [],
       incomeRecords: [],
       workers: [],
-      addCow: (cow) => set((s) => ({ cows: [...s.cows, cow] })),
-      updateCow: (cow) => set((s) => ({ cows: s.cows.map((c) => (c.id === cow.id ? cow : c)) })),
-      deleteCow: (id) => set((s) => ({ cows: s.cows.filter((c) => c.id !== id) })),
-      addMilkRecord: (r) => set((s) => ({ milkRecords: [...s.milkRecords, r] })),
-      deleteMilkRecord: (id) => set((s) => ({ milkRecords: s.milkRecords.filter((r) => r.id !== id) })),
-      addFeedRecord: (r) => set((s) => ({ feedRecords: [...s.feedRecords, r] })),
-      deleteFeedRecord: (id) => set((s) => ({ feedRecords: s.feedRecords.filter((r) => r.id !== id) })),
-      addHealthRecord: (r) => set((s) => ({ healthRecords: [...s.healthRecords, r] })),
-      deleteHealthRecord: (id) => set((s) => ({ healthRecords: s.healthRecords.filter((r) => r.id !== id) })),
-      addNote: (n) => set((s) => ({ notes: [...s.notes, n] })),
-      deleteNote: (id) => set((s) => ({ notes: s.notes.filter((n) => n.id !== id) })),
-      addBreedingRecord: (r) => set((s) => ({ breedingRecords: [...s.breedingRecords, r] })),
-      deleteBreedingRecord: (id) => set((s) => ({ breedingRecords: s.breedingRecords.filter((r) => r.id !== id) })),
-      addAlert: (a) => set((s) => ({ alerts: [...s.alerts, a] })),
-      toggleAlert: (id) => set((s) => ({ alerts: s.alerts.map((a) => (a.id === id ? { ...a, done: !a.done } : a)) })),
-      deleteAlert: (id) => set((s) => ({ alerts: s.alerts.filter((a) => a.id !== id) })),
-      addExpense: (e) => set((s) => ({ expenses: [...s.expenses, e] })),
-      deleteExpense: (id) => set((s) => ({ expenses: s.expenses.filter((e) => e.id !== id) })),
-      addIncomeRecord: (r) => set((s) => ({ incomeRecords: [...s.incomeRecords, r] })),
-      deleteIncomeRecord: (id) => set((s) => ({ incomeRecords: s.incomeRecords.filter((r) => r.id !== id) })),
-      addWorker: (w) => set((s) => ({ workers: [...s.workers, w] })),
-      updateWorker: (w) => set((s) => ({ workers: s.workers.map((x) => (x.id === w.id ? w : x)) })),
-      deleteWorker: (id) => set((s) => ({ workers: s.workers.filter((w) => w.id !== id) })),
+      loading: false,
+      error: null,
+
+      // Cow operations
+      addCow: (cowData) => {
+        const now = new Date().toISOString();
+        const newCow: Cow = {
+          ...cowData,
+          id: `cow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          created_at: now,
+          updated_at: now,
+        };
+        console.log('Adding cow:', newCow);
+        set((state) => ({ cows: [...state.cows, newCow] }));
+      },
+
+      updateCow: (id, updates) => {
+        set((state) => ({
+          cows: state.cows.map((cow) =>
+            cow.id === id
+              ? { ...cow, ...updates, updated_at: new Date().toISOString() }
+              : cow
+          ),
+        }));
+      },
+
+      deleteCow: (id) => {
+        set((state) => ({
+          cows: state.cows.filter((cow) => cow.id !== id),
+          // Also remove related records
+          milkRecords: state.milkRecords.filter((record) => record.cow_id !== id),
+          feedRecords: state.feedRecords.filter((record) => record.cow_id !== id),
+          healthRecords: state.healthRecords.filter((record) => record.cow_id !== id),
+          breedingRecords: state.breedingRecords.filter((record) => record.cow_id !== id),
+        }));
+      },
+
+      // Milk record operations
+      addMilkRecord: (recordData) => {
+        const now = new Date().toISOString();
+        const newRecord: MilkRecord = {
+          ...recordData,
+          id: `milk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          created_at: now,
+          updated_at: now,
+        };
+        set((state) => ({ milkRecords: [...state.milkRecords, newRecord] }));
+      },
+
+      deleteMilkRecord: (id) => {
+        set((state) => ({
+          milkRecords: state.milkRecords.filter((record) => record.id !== id),
+        }));
+      },
+
+      // Feed record operations
+      addFeedRecord: (recordData) => {
+        const now = new Date().toISOString();
+        const newRecord: FeedRecord = {
+          ...recordData,
+          id: `feed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          created_at: now,
+          updated_at: now,
+        };
+        set((state) => ({ feedRecords: [...state.feedRecords, newRecord] }));
+      },
+
+      deleteFeedRecord: (id) => {
+        set((state) => ({
+          feedRecords: state.feedRecords.filter((record) => record.id !== id),
+        }));
+      },
+
+      // Health record operations
+      addHealthRecord: (recordData) => {
+        const now = new Date().toISOString();
+        const newRecord: HealthRecord = {
+          ...recordData,
+          id: `health_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          created_at: now,
+          updated_at: now,
+        };
+        set((state) => ({ healthRecords: [...state.healthRecords, newRecord] }));
+      },
+
+      deleteHealthRecord: (id) => {
+        set((state) => ({
+          healthRecords: state.healthRecords.filter((record) => record.id !== id),
+        }));
+      },
+
+      // Note operations
+      addNote: (noteData) => {
+        const now = new Date().toISOString();
+        const newNote: Note = {
+          ...noteData,
+          id: `note_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          created_at: now,
+          updated_at: now,
+        };
+        set((state) => ({ notes: [...state.notes, newNote] }));
+      },
+
+      deleteNote: (id) => {
+        set((state) => ({
+          notes: state.notes.filter((note) => note.id !== id),
+        }));
+      },
+
+      // Breeding record operations
+      addBreedingRecord: (recordData) => {
+        const now = new Date().toISOString();
+        const newRecord: BreedingRecord = {
+          ...recordData,
+          id: `breeding_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          created_at: now,
+          updated_at: now,
+        };
+        set((state) => ({ breedingRecords: [...state.breedingRecords, newRecord] }));
+      },
+
+      deleteBreedingRecord: (id) => {
+        set((state) => ({
+          breedingRecords: state.breedingRecords.filter((record) => record.id !== id),
+        }));
+      },
+
+      // Alert operations
+      addAlert: (alert) => {
+        set((state) => ({ alerts: [...state.alerts, alert] }));
+      },
+
+      toggleAlert: (id) => {
+        set((state) => ({
+          alerts: state.alerts.map((alert) =>
+            alert.id === id ? { ...alert, done: !alert.done } : alert
+          ),
+        }));
+      },
+
+      deleteAlert: (id) => {
+        set((state) => ({
+          alerts: state.alerts.filter((alert) => alert.id !== id),
+        }));
+      },
+
+      // Expense operations
+      addExpense: (expense) => {
+        set((state) => ({ expenses: [...state.expenses, expense] }));
+      },
+
+      deleteExpense: (id) => {
+        set((state) => ({
+          expenses: state.expenses.filter((expense) => expense.id !== id),
+        }));
+      },
+
+      // Income operations
+      addIncomeRecord: (record) => {
+        set((state) => ({ incomeRecords: [...state.incomeRecords, record] }));
+      },
+
+      deleteIncomeRecord: (id) => {
+        set((state) => ({
+          incomeRecords: state.incomeRecords.filter((record) => record.id !== id),
+        }));
+      },
+
+      // Worker operations
+      addWorker: (worker) => {
+        set((state) => ({ workers: [...state.workers, worker] }));
+      },
+
+      updateWorker: (worker) => {
+        set((state) => ({
+          workers: state.workers.map((w) =>
+            w.id === worker.id ? worker : w
+          ),
+        }));
+      },
+
+      deleteWorker: (id) => {
+        set((state) => ({
+          workers: state.workers.filter((worker) => worker.id !== id),
+        }));
+      },
+
+      clearError: () => {
+        set({ error: null });
+      },
+
+      // Data management
+      exportData: () => {
+        const state = get();
+        const dataToExport = {
+          cows: state.cows,
+          milkRecords: state.milkRecords,
+          feedRecords: state.feedRecords,
+          healthRecords: state.healthRecords,
+          notes: state.notes,
+          breedingRecords: state.breedingRecords,
+          alerts: state.alerts,
+          expenses: state.expenses,
+          incomeRecords: state.incomeRecords,
+          workers: state.workers,
+          exportedAt: new Date().toISOString(),
+          version: '1.0'
+        };
+        return JSON.stringify(dataToExport, null, 2);
+      },
+
+      // Debug function to check localStorage
+      checkStorage: () => {
+        try {
+          const data = localStorage.getItem('godii-farm-storage');
+          console.log('Current localStorage data:', data ? JSON.parse(data) : 'No data');
+          console.log('Current store state:', get());
+          return data;
+        } catch (error) {
+          console.error('Error checking storage:', error);
+          return null;
+        }
+      },
+
+      importData: (jsonData) => {
+        try {
+          const importedData = JSON.parse(jsonData);
+
+          // Validate the data structure
+          if (!importedData.cows || !Array.isArray(importedData.cows)) {
+            throw new Error('Invalid data format: missing cows array');
+          }
+
+          // Import the data
+          set({
+            cows: importedData.cows || [],
+            milkRecords: importedData.milkRecords || [],
+            feedRecords: importedData.feedRecords || [],
+            healthRecords: importedData.healthRecords || [],
+            notes: importedData.notes || [],
+            breedingRecords: importedData.breedingRecords || [],
+            alerts: importedData.alerts || [],
+            expenses: importedData.expenses || [],
+            incomeRecords: importedData.incomeRecords || [],
+            workers: importedData.workers || [],
+          });
+
+          return true;
+        } catch (error) {
+          console.error('Error importing data:', error);
+          set({ error: `Import failed: ${error instanceof Error ? error.message : 'Invalid data format'}` });
+          return false;
+        }
+      },
+
+      clearAllData: () => {
+        set({
+          cows: [],
+          milkRecords: [],
+          feedRecords: [],
+          healthRecords: [],
+          notes: [],
+          breedingRecords: [],
+          alerts: [],
+          expenses: [],
+          incomeRecords: [],
+          workers: [],
+          error: null,
+        });
+      },
     }),
-    { name: 'cowtrack-storage' }
+    {
+      name: 'godii-farm-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        cows: state.cows,
+        milkRecords: state.milkRecords,
+        feedRecords: state.feedRecords,
+        healthRecords: state.healthRecords,
+        notes: state.notes,
+        breedingRecords: state.breedingRecords,
+        alerts: state.alerts,
+        expenses: state.expenses,
+        incomeRecords: state.incomeRecords,
+        workers: state.workers,
+      }),
+      onRehydrateStorage: () => (state) => {
+        console.log('Data rehydrated from localStorage:', state);
+      },
+    }
   )
 );

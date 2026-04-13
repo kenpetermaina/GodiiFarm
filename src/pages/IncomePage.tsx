@@ -4,11 +4,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
+import { downloadCSV } from "@/lib/downloadUtils";
 
 export default function IncomePage() {
   const { incomeRecords, addIncomeRecord, deleteIncomeRecord } = useFarmStore();
@@ -16,6 +17,22 @@ export default function IncomePage() {
   const [form, setForm] = useState({ litres: "", pricePerLitre: "", buyer: "" });
   const total = incomeRecords.reduce((s, r) => s + r.total, 0);
   const totalLitres = incomeRecords.reduce((s, r) => s + r.litres, 0);
+
+  const handleDownloadIncome = () => {
+    try {
+      const data = incomeRecords.map(r => ({
+        Date: r.date,
+        Litres: r.litres,
+        "Price per Litre (KES)": r.pricePerLitre,
+        "Total (KES)": r.total,
+        Buyer: r.buyer || "—"
+      }));
+      downloadCSV(data, `income-${new Date().toISOString().split('T')[0]}.csv`);
+      toast.success("Income records downloaded successfully");
+    } catch (error) {
+      toast.error("Failed to download records");
+    }
+  };
 
   const handleAdd = () => {
     if (!form.litres || !form.pricePerLitre) return toast.error("Fill required fields");
@@ -32,6 +49,10 @@ export default function IncomePage() {
       <PageHeader title="Income" subtitle={`Total: KES ${total.toLocaleString()} | ${totalLitres} L sold`} actions={
         <>
           <PrintButton />
+          <Button variant="outline" onClick={handleDownloadIncome}>
+            <Download className="h-4 w-4 mr-1" />
+            Download CSV
+          </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" />Record Sale</Button></DialogTrigger>
             <DialogContent>

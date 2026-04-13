@@ -14,17 +14,22 @@ import PrintButton from "@/components/PrintButton";
 export default function FeedingPage() {
   const { feedRecords, addFeedRecord, deleteFeedRecord, cows } = useFarmStore();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ cowId: "", feedType: "", quantity: "" });
+  const [form, setForm] = useState({ cow_id: "", feed_type: "", quantity: "", feeding_time: "" });
 
   const handleAdd = () => {
-    if (!form.cowId || !form.feedType) return toast.error("Fill required fields");
-    addFeedRecord({ id: Date.now().toString(), date: new Date().toISOString().split("T")[0], cowId: form.cowId, feedType: form.feedType, quantity: form.quantity });
+    if (!form.cow_id || !form.feed_type || !form.quantity) return toast.error("Fill required fields");
+    addFeedRecord({ 
+      cow_id: form.cow_id, 
+      feed_type: form.feed_type, 
+      quantity: Number(form.quantity), 
+      feeding_time: form.feeding_time || new Date().toISOString()
+    });
     toast.success("Feed record added");
-    setForm({ cowId: "", feedType: "", quantity: "" });
+    setForm({ cow_id: "", feed_type: "", quantity: "", feeding_time: "" });
     setOpen(false);
   };
 
-  const getCowName = (id: string) => { const c = cows.find((c) => c.id === id); return c ? `${c.tag} - ${c.name}` : id; };
+  const getCowName = (id: string) => { const c = cows.find((c) => c.id === id); return c ? `${c.tag_number} - ${c.name}` : id; };
 
   return (
     <div>
@@ -36,12 +41,13 @@ export default function FeedingPage() {
             <DialogContent>
               <DialogHeader><DialogTitle>Add Feed Record</DialogTitle></DialogHeader>
               <div className="space-y-3">
-                <Select value={form.cowId} onValueChange={(v) => setForm({ ...form, cowId: v })}>
+                <Select value={form.cow_id} onValueChange={(v) => setForm({ ...form, cow_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Select cow" /></SelectTrigger>
-                  <SelectContent>{cows.map((c) => <SelectItem key={c.id} value={c.id}>{c.tag} - {c.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{cows.map((c) => <SelectItem key={c.id} value={c.id}>{c.tag_number} - {c.name}</SelectItem>)}</SelectContent>
                 </Select>
-                <Input placeholder="Feed Type" value={form.feedType} onChange={(e) => setForm({ ...form, feedType: e.target.value })} />
-                <Input placeholder="Quantity" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+                <Input placeholder="Feed Type" value={form.feed_type} onChange={(e) => setForm({ ...form, feed_type: e.target.value })} />
+                <Input placeholder="Quantity (kg)" type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+                <Input placeholder="Feeding Time" type="datetime-local" value={form.feeding_time} onChange={(e) => setForm({ ...form, feeding_time: e.target.value })} />
                 <Button onClick={handleAdd} className="w-full">Add</Button>
               </div>
             </DialogContent>
@@ -51,13 +57,13 @@ export default function FeedingPage() {
       <Card>
         <CardContent className="p-4">
           <Table>
-            <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Cow</TableHead><TableHead>Feed Type</TableHead><TableHead>Quantity</TableHead><TableHead className="no-print">Actions</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Feeding Time</TableHead><TableHead>Cow</TableHead><TableHead>Feed Type</TableHead><TableHead>Quantity (kg)</TableHead><TableHead className="no-print">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {feedRecords.length === 0 ? (
                 <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No feed records yet.</TableCell></TableRow>
               ) : feedRecords.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell>{r.date}</TableCell><TableCell>{getCowName(r.cowId)}</TableCell><TableCell>{r.feedType}</TableCell><TableCell>{r.quantity}</TableCell>
+                  <TableCell>{new Date(r.feeding_time).toLocaleString()}</TableCell><TableCell>{getCowName(r.cow_id)}</TableCell><TableCell>{r.feed_type}</TableCell><TableCell>{r.quantity}</TableCell>
                   <TableCell className="no-print"><Button variant="ghost" size="icon" onClick={() => { deleteFeedRecord(r.id); toast.success("Deleted"); }}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
                 </TableRow>
               ))}

@@ -3,29 +3,32 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
-import { Plus, Milk, Pencil, Trash2, Beef, HeartPulse, AlertTriangle } from "lucide-react";
+import { Plus, Milk, Pencil, Trash2, Beef, HeartPulse, AlertTriangle, Download, Upload, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
 
 export default function Dashboard() {
-  const { cows, milkRecords, addCow, addMilkRecord, deleteCow, updateCow } = useFarmStore();
+  const { cows, milkRecords, addCow, addMilkRecord, deleteCow, updateCow, exportData, importData, clearAllData, checkStorage } = useFarmStore();
   const [cowDialogOpen, setCowDialogOpen] = useState(false);
   const [milkDialogOpen, setMilkDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editCow, setEditCow] = useState<any>(null);
+  const [importText, setImportText] = useState("");
 
   const today = new Date().toISOString().split("T")[0];
-  const todayMilk = milkRecords.filter((r) => r.date === today).reduce((s, r) => s + r.amount, 0);
-  const healthyCows = cows.filter((c) => c.health === "Healthy").length;
-  const needAttention = cows.filter((c) => c.health !== "Healthy").length;
+  const todayMilk = milkRecords.filter((r) => r.date === today).reduce((s, r) => s + r.amount_liters, 0);
+  const healthyCows = cows.filter((c) => c.status === "healthy").length;
+  const needAttention = cows.filter((c) => c.status !== "healthy").length;
 
   const dailyData = milkRecords.reduce<Record<string, number>>((acc, r) => {
-    acc[r.date] = (acc[r.date] || 0) + r.amount;
+    acc[r.date] = (acc[r.date] || 0) + r.amount_liters;
     return acc;
   }, {});
   const chartData = Object.entries(dailyData)
@@ -39,45 +42,106 @@ export default function Dashboard() {
     { label: "Need Attention", value: needAttention, icon: AlertTriangle, color: "border-l-warning" },
   ];
 
-  const [newCow, setNewCow] = useState({ tag: "", name: "", breed: "", age: "", weight: "", health: "Healthy" as const });
-  const [newMilk, setNewMilk] = useState({ cowId: "", amount: "", session: "Morning" as "Morning" | "Evening" });
+  const [newCow, setNewCow] = useState({ tag_number: "", name: "", breed: "", date_of_birth: "", gender: "female" as "male" | "female", status: "healthy" as const });
+  const [newMilk, setNewMilk] = useState({ cow_id: "", amount_liters: "", session: "Morning" as "Morning" | "Lunch" | "Evening" });
 
-  const handleAddCow = () => {
-    if (!newCow.tag || !newCow.name) return toast.error("Fill required fields");
-    const cow = {
-      id: Date.now().toString(),
-      tag: newCow.tag,
-      name: newCow.name,
-      breed: newCow.breed,
-      age: Number(newCow.age) || 0,
-      weight: Number(newCow.weight) || 0,
-      health: newCow.health as any,
-      lastCheckup: today,
-    };
-    if (editCow) {
-      updateCow({ ...cow, id: editCow.id });
-      toast.success("Cow updated");
-    } else {
-      addCow(cow);
-      toast.success("Cow added");
+  const handleAddCow = async () => {
+    if (!newCow.tag_number || !newCow.name) return toast.error("Fill required fields");
+    try {
+      const cow = {
+        tag_number: newCow.tag_number,
+        name: newCow.name,
+        breed: newCow.breed || null,
+        date_of_birth: newCow.date_of_birth || null,
+        gender: newCow.gender,
+        status: newCow.status,
+      };
+      if (editCow) {
+        await updateCow(editCow.id, cow);
+        toast.success("Cow updated");
+      } else {
+        await addCow(cow);
+        toast.success("Cow added");
+      }
+      setNewCow({ tag_number: "", name: "", breed: "", date_of_birth: "", gender: "female", status: "healthy" });
+      setEditCow(null);
+      setCowDialogOpen(false);
+    } catch (error) {
+      toast.error("Failed to save cow");
     }
-    setNewCow({ tag: "", name: "", breed: "", age: "", weight: "", health: "Healthy" });
-    setEditCow(null);
-    setCowDialogOpen(false);
   };
 
-  const handleAddMilk = () => {
-    if (!newMilk.cowId || !newMilk.amount) return toast.error("Fill required fields");
-    addMilkRecord({ id: Date.now().toString(), date: today, cowId: newMilk.cowId, amount: Number(newMilk.amount), session: newMilk.session });
-    toast.success("Milk logged");
-    setNewMilk({ cowId: "", amount: "", session: "Morning" });
-    setMilkDialogOpen(false);
+  const handleAddMilk = async () => {
+    if (!newMilk.cow_id || !newMilk.amount_liters) return toast.error("Fill required fields");
+    try {
+      await addMilkRecord({
+        cow_id: newMilk.cow_id,
+        date: today,
+        amount_liters: Number(newMilk.amount_liters),
+        session: newMilk.session
+      });
+      toast.success("Milk logged");
+      setNewMilk({ cow_id: "", amount_liters: "", session: "Morning" });
+      setMilkDialogOpen(false);
+    } catch (error) {
+      toast.error("Failed to log milk");
+    }
   };
 
   const openEdit = (cow: any) => {
     setEditCow(cow);
-    setNewCow({ tag: cow.tag, name: cow.name, breed: cow.breed, age: String(cow.age), weight: String(cow.weight), health: cow.health });
+    setNewCow({ 
+      tag_number: cow.tag_number, 
+      name: cow.name, 
+      breed: cow.breed || "", 
+      date_of_birth: cow.date_of_birth || "", 
+      gender: cow.gender || "female", 
+      status: cow.status 
+    });
     setCowDialogOpen(true);
+  };
+
+  const handleExportData = () => {
+    try {
+      const data = exportData();
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `godii-farm-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Data exported successfully");
+    } catch (error) {
+      toast.error("Failed to export data");
+    }
+  };
+
+  const handleImportData = () => {
+    if (!importText.trim()) {
+      toast.error("Please paste your data to import");
+      return;
+    }
+
+    try {
+      const success = importData(importText);
+      if (success) {
+        toast.success("Data imported successfully");
+        setImportText("");
+        setImportDialogOpen(false);
+      }
+    } catch (error) {
+      toast.error("Failed to import data");
+    }
+  };
+
+  const handleClearAllData = () => {
+    if (confirm("Are you sure you want to clear all data? This action cannot be undone.")) {
+      clearAllData();
+      toast.success("All data cleared");
+    }
   };
 
   return (
@@ -85,19 +149,66 @@ export default function Dashboard() {
       <PageHeader title="Dashboard" subtitle="Overview of your herd & production" actions={
         <>
           <PrintButton />
+          <Button variant="outline" onClick={handleExportData}>
+            <Download className="h-4 w-4 mr-1" />
+            Export Data
+          </Button>
+          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Upload className="h-4 w-4 mr-1" />
+                Import Data
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Import Farm Data</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Paste your exported JSON data below. This will replace all current data.
+                </p>
+                <Textarea
+                  placeholder="Paste your exported data here..."
+                  value={importText}
+                  onChange={(e) => setImportText(e.target.value)}
+                  rows={10}
+                />
+                <div className="flex gap-2">
+                  <Button onClick={handleImportData} className="flex-1">
+                    Import Data
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleClearAllData}
+                  >
+                    Clear All Data
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline" onClick={checkStorage}>
+            <Bug className="h-4 w-4 mr-1" />
+            Debug Storage
+          </Button>
           <Dialog open={milkDialogOpen} onOpenChange={setMilkDialogOpen}>
             <DialogTrigger asChild><Button variant="outline"><Milk className="h-4 w-4 mr-1" />Log Milk</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Log Milk Production</DialogTitle></DialogHeader>
               <div className="space-y-3">
-                <Select value={newMilk.cowId} onValueChange={(v) => setNewMilk({ ...newMilk, cowId: v })}>
+                <Select value={newMilk.cow_id} onValueChange={(v) => setNewMilk({ ...newMilk, cow_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Select cow" /></SelectTrigger>
-                  <SelectContent>{cows.map((c) => <SelectItem key={c.id} value={c.id}>{c.tag} - {c.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{cows.map((c) => <SelectItem key={c.id} value={c.id}>{c.tag_number} - {c.name}</SelectItem>)}</SelectContent>
                 </Select>
-                <Input placeholder="Amount (L)" type="number" value={newMilk.amount} onChange={(e) => setNewMilk({ ...newMilk, amount: e.target.value })} />
+                <Input placeholder="Amount (L)" type="number" value={newMilk.amount_liters} onChange={(e) => setNewMilk({ ...newMilk, amount_liters: e.target.value })} />
                 <Select value={newMilk.session} onValueChange={(v: any) => setNewMilk({ ...newMilk, session: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="Morning">Morning</SelectItem><SelectItem value="Evening">Evening</SelectItem></SelectContent>
+                  <SelectContent>
+                    <SelectItem value="Morning">Morning</SelectItem>
+                    <SelectItem value="Lunch">Lunch</SelectItem>
+                    <SelectItem value="Evening">Evening</SelectItem>
+                  </SelectContent>
                 </Select>
                 <Button onClick={handleAddMilk} className="w-full">Log</Button>
               </div>
@@ -108,14 +219,17 @@ export default function Dashboard() {
             <DialogContent>
               <DialogHeader><DialogTitle>{editCow ? "Edit Cow" : "Add Cow"}</DialogTitle></DialogHeader>
               <div className="space-y-3">
-                <Input placeholder="Tag (e.g. C-006)" value={newCow.tag} onChange={(e) => setNewCow({ ...newCow, tag: e.target.value })} />
+                <Input placeholder="Tag Number (e.g. C-006)" value={newCow.tag_number} onChange={(e) => setNewCow({ ...newCow, tag_number: e.target.value })} />
                 <Input placeholder="Name" value={newCow.name} onChange={(e) => setNewCow({ ...newCow, name: e.target.value })} />
                 <Input placeholder="Breed" value={newCow.breed} onChange={(e) => setNewCow({ ...newCow, breed: e.target.value })} />
-                <Input placeholder="Age" type="number" value={newCow.age} onChange={(e) => setNewCow({ ...newCow, age: e.target.value })} />
-                <Input placeholder="Weight (kg)" type="number" value={newCow.weight} onChange={(e) => setNewCow({ ...newCow, weight: e.target.value })} />
-                <Select value={newCow.health} onValueChange={(v: any) => setNewCow({ ...newCow, health: v })}>
+                <Input placeholder="Date of Birth" type="date" value={newCow.date_of_birth} onChange={(e) => setNewCow({ ...newCow, date_of_birth: e.target.value })} />
+                <Select value={newCow.gender} onValueChange={(v: any) => setNewCow({ ...newCow, gender: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="Healthy">Healthy</SelectItem><SelectItem value="Monitoring">Monitoring</SelectItem><SelectItem value="Sick">Sick</SelectItem></SelectContent>
+                  <SelectContent><SelectItem value="female">Female</SelectItem><SelectItem value="male">Male</SelectItem></SelectContent>
+                </Select>
+                <Select value={newCow.status} onValueChange={(v: any) => setNewCow({ ...newCow, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="healthy">Healthy</SelectItem><SelectItem value="sick">Sick</SelectItem><SelectItem value="sold">Sold</SelectItem><SelectItem value="dead">Dead</SelectItem></SelectContent>
                 </Select>
                 <Button onClick={handleAddCow} className="w-full">{editCow ? "Update" : "Add"}</Button>
               </div>
@@ -159,23 +273,22 @@ export default function Dashboard() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tag</TableHead><TableHead>Name</TableHead><TableHead>Breed</TableHead>
-                <TableHead>Age</TableHead><TableHead>Weight (kg)</TableHead><TableHead>Health</TableHead>
-                <TableHead>Last Checkup</TableHead><TableHead className="no-print">Actions</TableHead>
+                <TableHead>Tag Number</TableHead><TableHead>Name</TableHead><TableHead>Breed</TableHead>
+                <TableHead>Date of Birth</TableHead><TableHead>Gender</TableHead><TableHead>Status</TableHead>
+                <TableHead className="no-print">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {cows.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell>{c.tag}</TableCell><TableCell>{c.name}</TableCell><TableCell>{c.breed}</TableCell>
-                  <TableCell>{c.age} yrs</TableCell><TableCell>{c.weight}</TableCell>
+                  <TableCell>{c.tag_number}</TableCell><TableCell>{c.name}</TableCell><TableCell>{c.breed}</TableCell>
+                  <TableCell>{c.date_of_birth ? new Date(c.date_of_birth).toLocaleDateString() : 'N/A'}</TableCell><TableCell>{c.gender}</TableCell>
                   <TableCell>
-                    <Badge variant={c.health === "Healthy" ? "default" : c.health === "Monitoring" ? "secondary" : "destructive"}
-                      className={c.health === "Healthy" ? "bg-success" : c.health === "Monitoring" ? "bg-warning" : ""}>
-                      {c.health}
+                    <Badge variant={c.status === "healthy" ? "default" : "destructive"}
+                      className={c.status === "healthy" ? "bg-success" : ""}>
+                      {c.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{c.lastCheckup}</TableCell>
                   <TableCell className="no-print">
                     <div className="flex gap-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>

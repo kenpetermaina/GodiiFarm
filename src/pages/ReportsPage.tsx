@@ -2,11 +2,39 @@ import { useFarmStore } from "@/store/farmStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
+import { generateMilkReport, generateExpensesReport, generateIncomeReport, downloadReport } from "@/lib/downloadUtils";
 
 export default function ReportsPage() {
   const { milkRecords, cows, expenses, incomeRecords } = useFarmStore();
+
+  const handleDownloadReport = (type: 'milk' | 'expenses' | 'income' | 'all') => {
+    try {
+      const date = new Date().toISOString().split('T')[0];
+      
+      if (type === 'milk' || type === 'all') {
+        const report = generateMilkReport(milkRecords, cows);
+        downloadReport('Milk Report', report, `milk-report-${date}.txt`);
+      }
+      if (type === 'expenses' || type === 'all') {
+        const report = generateExpensesReport(expenses);
+        downloadReport('Expenses Report', report, `expenses-report-${date}.txt`);
+      }
+      if (type === 'income' || type === 'all') {
+        const report = generateIncomeReport(incomeRecords);
+        downloadReport('Income Report', report, `income-report-${date}.txt`);
+      }
+      
+      toast.success(`Report${type === 'all' ? 's' : ''} downloaded successfully`);
+    } catch (error) {
+      toast.error("Failed to download report");
+      console.error(error);
+    }
+  };
 
   const totalMilk = milkRecords.reduce((s, r) => s + r.amount, 0);
   const totalIncome = incomeRecords.reduce((s, r) => s + r.total, 0);
@@ -34,7 +62,27 @@ export default function ReportsPage() {
 
   return (
     <div>
-      <PageHeader title="Reports" subtitle="Weekly & monthly performance overview" actions={<PrintButton />} />
+      <PageHeader 
+        title="Reports" 
+        subtitle="Weekly & monthly performance overview" 
+        actions={
+          <div className="flex gap-2">
+            <PrintButton />
+            <Button variant="outline" size="sm" onClick={() => handleDownloadReport('milk')}>
+              <Download className="h-4 w-4 mr-1" />
+              Milk Report
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleDownloadReport('expenses')}>
+              <Download className="h-4 w-4 mr-1" />
+              Expenses Report
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleDownloadReport('income')}>
+              <Download className="h-4 w-4 mr-1" />
+              Income Report
+            </Button>
+          </div>
+        } 
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Total Milk</p><p className="text-2xl font-bold">{totalMilk} L</p></CardContent></Card>
