@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, PieChart, Pie, Cell } from "recharts";
-import { Plus, Milk, Pencil, Trash2, Beef, HeartPulse, AlertTriangle, Lightbulb } from "lucide-react";
+import { Plus, Milk, Pencil, Trash2, Beef, HeartPulse, AlertTriangle, Lightbulb, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ export default function Dashboard() {
   const [editCow, setEditCow] = useState<any>(null);
   const [timePeriod, setTimePeriod] = useState<'day' | 'week' | 'month'>('day');
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{type: 'user' | 'ai', text: string, chart?: any}>>([]);
+  const [chatInput, setChatInput] = useState('');
 
   const today = new Date().toISOString().split("T")[0];
   const todayMilk = milkRecords.filter((r) => r.date === today).reduce((s, r) => s + r.amount_liters, 0);
@@ -146,6 +148,63 @@ export default function Dashboard() {
     setCowDialogOpen(true);
   };
 
+  const generateChartResponse = (question: string) => {
+    const q = question.toLowerCase();
+    
+    if (q.includes('production') || q.includes('milk') || q.includes('yield')) {
+      return {
+        response: `Based on your records, here's your milk production analysis. Your average production per cow is ${avgProduction.toFixed(1)}L per ${timePeriod}. Total production is ${totalProduction.toFixed(1)}L with $${totalProceeds.toFixed(2)} in proceeds.`,
+        chartType: 'production',
+        data: barData
+      };
+    } else if (q.includes('cow') || q.includes('herd') || q.includes('animals')) {
+      const statusData = [
+        { name: 'Healthy', value: healthyCows },
+        { name: 'Need Attention', value: needAttention },
+        { name: 'Total', value: cows.length }
+      ];
+      return {
+        response: `Your herd consists of ${cows.length} total cows. ${healthyCows} are healthy and ${needAttention} need attention. You have ${cows.filter(c => c.gender === 'female').length} females.`,
+        chartType: 'herd',
+        data: statusData
+      };
+    } else if (q.includes('profit') || q.includes('earn') || q.includes('income') || q.includes('revenue')) {
+      return {
+        response: `Your revenue analysis: Total proceeds from milk production is $${totalProceeds.toFixed(2)}. With ${cowProduction.length} producing cows, average revenue is $${(totalProceeds / cowProduction.length || 0).toFixed(2)} per cow.`,
+        chartType: 'proceeds',
+        data: pieData
+      };
+    } else if (q.includes('health') || q.includes('sick') || q.includes('disease')) {
+      return {
+        response: `Health Status: ${healthyCows} cows are healthy (${((healthyCows/cows.length)*100).toFixed(0)}%) and ${needAttention} need attention (${((needAttention/cows.length)*100).toFixed(0)}%). Monitor sick animals closely and consider consulting a veterinarian.`,
+        chartType: 'health',
+        data: [{ category: 'Healthy', count: healthyCows }, { category: 'Attention', count: needAttention }]
+      };
+    } else if (q.includes('daily') || q.includes('today') || q.includes('recent')) {
+      return {
+        response: `Today's production: ${todayMilk.toFixed(1)}L. This represents the daily milk output from your herd. Keep tracking daily patterns to identify trends.`,
+        chartType: 'daily',
+        data: chartData.slice(-7)
+      };
+    } else {
+      return {
+        response: `I can help you analyze: \\n• Milk production trends\\n• Herd health status\\n• Revenue/profit analysis\\n• Individual cow performance\\n• Daily production patterns\\n\\nTry asking about 'milk production', 'cow health', 'profits', or 'herd status'.`,
+        chartType: null,
+        data: null
+      };
+    }
+  };
+
+  const handleChatSubmit = () => {
+    if (!chatInput.trim()) return;
+    
+    const newMessages = [...chatMessages, { type: 'user' as const, text: chatInput }];
+    const response = generateChartResponse(chatInput);
+    newMessages.push({ type: 'ai' as const, text: response.response, chart: { type: response.chartType, data: response.data } });
+    setChatMessages(newMessages);
+    setChatInput('');
+  };
+
   return (
     <div>
       <PageHeader title="Dashboard" subtitle="Overview of your herd & production" actions={
@@ -175,77 +234,170 @@ export default function Dashboard() {
           </Dialog>
           <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
             <DialogTrigger asChild><Button variant="outline"><Lightbulb className="h-4 w-4 mr-1" />AI Assistance</Button></DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>🐄 Dairy Farming AI Assistant</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h4 className="font-semibold text-blue-900 mb-2">📊 Production Targets</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• <strong>Healthy Cow Daily:</strong> 15-25 liters per day</li>
-                    <li>• <strong>Monthly Target:</strong> 450-750 liters per cow</li>
-                    <li>• <strong>Annual Production:</strong> 5,400-9,000 liters per cow</li>
-                    <li>• <strong>Lactation Cycle:</strong> 305 days per year</li>
-                  </ul>
-                </div>
+            {chatMessages.length === 0 ? (
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader><DialogTitle>🐄 Dairy Farming AI Assistant</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-900 mb-2">📊 Production Targets</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• <strong>Healthy Cow Daily:</strong> 15-25 liters per day</li>
+                      <li>• <strong>Monthly Target:</strong> 450-750 liters per cow</li>
+                      <li>• <strong>Annual Production:</strong> 5,400-9,000 liters per cow</li>
+                      <li>• <strong>Lactation Cycle:</strong> 305 days per year</li>
+                    </ul>
+                  </div>
 
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <h4 className="font-semibold text-green-900 mb-2">🍃 Feeding & Nutrition</h4>
-                  <ul className="text-sm text-green-800 space-y-1">
-                    <li>• <strong>Daily Feed:</strong> 3-5% of body weight (50-75 kg for 1,500 lb cow)</li>
-                    <li>• <strong>Water Intake:</strong> 20-30 liters per day (increase with milking)</li>
-                    <li>• <strong>Grass/Hay:</strong> High-quality pasture or hay during dry seasons</li>
-                    <li>• <strong>Concentrate:</strong> 1-2 kg for every 2-3 liters of milk produced</li>
-                    <li>• <strong>Minerals:</strong> Calcium, phosphorus, magnesium daily</li>
-                  </ul>
-                </div>
+                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-900 mb-2">🌾 Feeding & Nutrition</h4>
+                    <ul className="text-sm text-green-800 space-y-1">
+                      <li>• <strong>Daily Feed:</strong> 3-5% of body weight (50-75 kg for 1,500 lb cow)</li>
+                      <li>• <strong>Water Intake:</strong> 20-30 liters per day (increase with milking)</li>
+                      <li>• <strong>Grass/Hay:</strong> High-quality pasture or hay during dry seasons</li>
+                      <li>• <strong>Concentrate:</strong> 1-2 kg for every 2-3 liters of milk produced</li>
+                      <li>• <strong>Minerals:</strong> Calcium, phosphorus, magnesium daily</li>
+                    </ul>
+                  </div>
 
-                <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                  <h4 className="font-semibold text-red-900 mb-2">❤️ Health & Disease Prevention</h4>
-                  <ul className="text-sm text-red-800 space-y-1">
-                    <li>• <strong>Mastitis Prevention:</strong> Clean udders before & after milking</li>
-                    <li>• <strong>Vaccination:</strong> Brucellosis, FMD, blackleg (annually)</li>
-                    <li>• <strong>Parasite Control:</strong> Deworm every 4-6 weeks</li>
-                    <li>• <strong>Health Check:</strong> Monitor temperature, appetite, milk quality daily</li>
-                    <li>• <strong>Hygiene:</strong> Clean barn/milking equipment 2x daily</li>
-                  </ul>
-                </div>
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <h4 className="font-semibold text-red-900 mb-2">❤️ Health & Disease Prevention</h4>
+                    <ul className="text-sm text-red-800 space-y-1">
+                      <li>• <strong>Mastitis Prevention:</strong> Clean udders before & after milking</li>
+                      <li>• <strong>Vaccination:</strong> Brucellosis, FMD, blackleg (annually)</li>
+                      <li>• <strong>Parasite Control:</strong> Deworm every 4-6 weeks</li>
+                      <li>• <strong>Health Check:</strong> Monitor temperature, appetite, milk quality daily</li>
+                      <li>• <strong>Hygiene:</strong> Clean barn/milking equipment 2x daily</li>
+                    </ul>
+                  </div>
 
-                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                  <h4 className="font-semibold text-yellow-900 mb-2">🌡️ Environmental Management</h4>
-                  <ul className="text-sm text-yellow-800 space-y-1">
-                    <li>• <strong>Temperature:</strong> Ideal 10-18°C (50-65°F)</li>
-                    <li>• <strong>Ventilation:</strong> 6-10 air changes per hour</li>
-                    <li>• <strong>Lighting:</strong> 14-16 hours per day increases milk yield</li>
-                    <li>• <strong>Resting:</strong> 8-10 hours of uninterrupted sleep daily</li>
-                    <li>• <strong>Milking Schedule:</strong> Consistent times (e.g., 5 AM & 5 PM)</li>
-                  </ul>
-                </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <h4 className="font-semibold text-yellow-900 mb-2">🌡️ Environmental Management</h4>
+                    <ul className="text-sm text-yellow-800 space-y-1">
+                      <li>• <strong>Temperature:</strong> Ideal 10-18°C (50-65°F)</li>
+                      <li>• <strong>Ventilation:</strong> 6-10 air changes per hour</li>
+                      <li>• <strong>Lighting:</strong> 14-16 hours per day increases milk yield</li>
+                      <li>• <strong>Resting:</strong> 8-10 hours of uninterrupted sleep daily</li>
+                      <li>• <strong>Milking Schedule:</strong> Consistent times (e.g., 5 AM & 5 PM)</li>
+                    </ul>
+                  </div>
 
-                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                  <h4 className="font-semibold text-purple-900 mb-2">🔄 Best Practices</h4>
-                  <ul className="text-sm text-purple-800 space-y-1">
-                    <li>• <strong>Breeding:</strong> Calve at 24-28 months for optimal productivity</li>
-                    <li>• <strong>Dry Period:</strong> 60 days rest after lactation improves next cycle</li>
-                    <li>• <strong>Record Keeping:</strong> Track milk, health, breeding, expenses</li>
-                    <li>• <strong>Genetic Selection:</strong> Keep high-producing, healthy cows</li>
-                    <li>• <strong>Consultation:</strong> Work with veterinarian quarterly</li>
-                  </ul>
-                </div>
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <h4 className="font-semibold text-purple-900 mb-2">🔄 Best Practices</h4>
+                    <ul className="text-sm text-purple-800 space-y-1">
+                      <li>• <strong>Breeding:</strong> Calve at 24-28 months for optimal productivity</li>
+                      <li>• <strong>Dry Period:</strong> 60 days rest after lactation improves next cycle</li>
+                      <li>• <strong>Record Keeping:</strong> Track milk, health, breeding, expenses</li>
+                      <li>• <strong>Genetic Selection:</strong> Keep high-producing, healthy cows</li>
+                      <li>• <strong>Consultation:</strong> Work with veterinarian quarterly</li>
+                    </ul>
+                  </div>
 
-                <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
-                  <h4 className="font-semibold text-indigo-900 mb-2">💡 When Production Drops</h4>
-                  <p className="text-sm text-indigo-800 mb-2">Check these in order:</p>
-                  <ul className="text-sm text-indigo-800 space-y-1">
-                    <li>1. Stress or Environmental Changes (heat, disturbance)</li>
-                    <li>2. Nutrition Deficiency (poor feed quality, low water)</li>
-                    <li>3. Illness (fever, lameness, mastitis, pregnancy)</li>
-                    <li>4. Milking Issues (improper technique, equipment problems)</li>
-                    <li>5. Age/Lactation Stage (natural decline near end of cycle)</li>
-                  </ul>
+                  <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                    <h4 className="font-semibold text-indigo-900 mb-2">💡 When Production Drops</h4>
+                    <p className="text-sm text-indigo-800 mb-2">Check these in order:</p>
+                    <ul className="text-sm text-indigo-800 space-y-1">
+                      <li>1. Stress or Environmental Changes (heat, disturbance)</li>
+                      <li>2. Nutrition Deficiency (poor feed quality, low water)</li>
+                      <li>3. Illness (fever, lameness, mastitis, pregnancy)</li>
+                      <li>4. Milking Issues (improper technique, equipment problems)</li>
+                      <li>5. Age/Lactation Stage (natural decline near end of cycle)</li>
+                    </ul>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground mt-4">💬 Type a question below to get AI assistance with charts and recommendations</p>
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="Ask about production, herd, health, profits, etc..." 
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleChatSubmit()}
+                    />
+                    <Button size="sm" onClick={handleChatSubmit}><Send className="h-4 w-4" /></Button>
+                  </div>
                 </div>
-              </div>
-              <Button onClick={() => setAiDialogOpen(false)} className="w-full mt-4">Close</Button>
-            </DialogContent>
+              </DialogContent>
+            ) : (
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+                <DialogHeader className="px-6 pt-6"><DialogTitle>🤖 AI Chat Assistant</DialogTitle></DialogHeader>
+                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+                  {chatMessages.map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-2xl ${msg.type === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'} p-3 rounded-lg`}>
+                        <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                        {msg.chart && msg.chart.type && (
+                          <div className="mt-3 bg-white rounded p-2">
+                            {msg.chart.type === 'production' && (
+                              <ResponsiveContainer width={300} height={150}>
+                                <BarChart data={msg.chart.data}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="name" />
+                                  <YAxis />
+                                  <Tooltip />
+                                  <Bar dataKey="milk" fill="#82ca9d" />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            )}
+                            {msg.chart.type === 'proceeds' && (
+                              <ResponsiveContainer width={300} height={150}>
+                                <PieChart>
+                                  <Pie data={msg.chart.data} cx="50%" cy="50%" dataKey="value" fill="#8884d8">
+                                    {msg.chart.data?.map((entry: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                  </Pie>
+                                  <Tooltip />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            )}
+                            {msg.chart.type === 'daily' && (
+                              <ResponsiveContainer width={300} height={150}>
+                                <BarChart data={msg.chart.data}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="date" />
+                                  <YAxis />
+                                  <Tooltip />
+                                  <Bar dataKey="amount" fill="#ffc658" />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            )}
+                            {msg.chart.type === 'health' && (
+                              <ResponsiveContainer width={300} height={150}>
+                                <BarChart data={msg.chart.data}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="category" />
+                                  <YAxis />
+                                  <Tooltip />
+                                  <Bar dataKey="count" fill="#ff7c7c" />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            )}
+                            {msg.chart.type === 'herd' && (
+                              <ResponsiveContainer width={300} height={150}>
+                                <BarChart data={msg.chart.data}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="name" />
+                                  <YAxis />
+                                  <Tooltip />
+                                  <Bar dataKey="value" fill="#95de64" />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t px-6 py-3 flex gap-2">
+                  <Input 
+                    placeholder="Ask another question..." 
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleChatSubmit()}
+                  />
+                  <Button size="sm" onClick={handleChatSubmit}><Send className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="outline" onClick={() => { setChatMessages([]); setChatInput(''); }}>Clear</Button>
+                </div>
+              </DialogContent>
+            )}
           </Dialog>
           <Dialog open={cowDialogOpen} onOpenChange={(o) => { setCowDialogOpen(o); if (!o) setEditCow(null); }}>
             <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-1" />Add Cow</Button></DialogTrigger>
