@@ -2,30 +2,74 @@ import { useFarmStore } from "@/store/farmStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
-import { Plus, Milk, Pencil, Trash2, Beef, HeartPulse, AlertTriangle, Download, Upload, Bug } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, PieChart, Pie, Cell } from "recharts";
+import { Plus, Milk, Pencil, Trash2, Beef, HeartPulse, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
 
 export default function Dashboard() {
-  const { cows, milkRecords, addCow, addMilkRecord, deleteCow, updateCow, exportData, importData, clearAllData, checkStorage } = useFarmStore();
+  const { cows, milkRecords, addCow, addMilkRecord, deleteCow, updateCow } = useFarmStore();
   const [cowDialogOpen, setCowDialogOpen] = useState(false);
   const [milkDialogOpen, setMilkDialogOpen] = useState(false);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editCow, setEditCow] = useState<any>(null);
-  const [importText, setImportText] = useState("");
+  const [timePeriod, setTimePeriod] = useState<'day' | 'week' | 'month'>('day');
 
   const today = new Date().toISOString().split("T")[0];
   const todayMilk = milkRecords.filter((r) => r.date === today).reduce((s, r) => s + r.amount_liters, 0);
   const healthyCows = cows.filter((c) => c.status === "healthy").length;
   const needAttention = cows.filter((c) => c.status !== "healthy").length;
+
+  const getDateRange = (period: 'day' | 'week' | 'month') => {
+    const now = new Date();
+    const start = new Date();
+    if (period === 'day') {
+      start.setDate(now.getDate() - 6); // last 7 days
+    } else if (period === 'week') {
+      start.setDate(now.getDate() - 27); // last 4 weeks
+    } else {
+      start.setMonth(now.getMonth() - 11); // last 12 months
+    }
+    return { start: start.toISOString().split('T')[0], end: now.toISOString().split('T')[0] };
+  };
+
+  const { start: periodStart, end: periodEnd } = getDateRange(timePeriod);
+
+  const filteredRecords = milkRecords.filter(r => r.date >= periodStart && r.date <= periodEnd);
+
+  const cowProduction = cows.map(cow => {
+    const cowRecords = filteredRecords.filter(r => r.cow_id === cow.id);
+    const totalMilk = cowRecords.reduce((sum, r) => sum + r.amount_liters, 0);
+    const proceeds = totalMilk * 2; // Assume $2 per liter
+    return {
+      name: cow.name,
+      tag: cow.tag_number,
+      milk: totalMilk,
+      proceeds
+    };
+  }).filter(c => c.milk > 0);
+
+  const barData = cowProduction.map(c => ({ name: c.tag, milk: c.milk }));
+
+  const pieData = cowProduction.map(c => ({ name: c.tag, value: c.proceeds }));
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+  const totalProduction = cowProduction.reduce((sum, c) => sum + c.milk, 0);
+  const totalProceeds = cowProduction.reduce((sum, c) => sum + c.proceeds, 0);
+  const avgProduction = totalProduction / cowProduction.length || 0;
+
+  const recommendations = [
+    totalProduction < 50 ? "Consider improving feed quality to boost milk production." : "",
+    avgProduction < 5 ? "Some cows are underperforming; check health and nutrition." : "",
+    cowProduction.length < cows.filter(c => c.status === 'healthy').length ? "Not all healthy cows are producing; monitor milking schedule." : "",
+    totalProceeds > 1000 ? "Excellent production! Consider expanding herd." : ""
+  ].filter(r => r).join(" ");
 
   const dailyData = milkRecords.reduce<Record<string, number>>((acc, r) => {
     acc[r.date] = (acc[r.date] || 0) + r.amount_liters;
@@ -101,97 +145,11 @@ export default function Dashboard() {
     setCowDialogOpen(true);
   };
 
-  const handleExportData = () => {
-    try {
-      const data = exportData();
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `godii-farm-data-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success("Data exported successfully");
-    } catch (error) {
-      toast.error("Failed to export data");
-    }
-  };
-
-  const handleImportData = () => {
-    if (!importText.trim()) {
-      toast.error("Please paste your data to import");
-      return;
-    }
-
-    try {
-      const success = importData(importText);
-      if (success) {
-        toast.success("Data imported successfully");
-        setImportText("");
-        setImportDialogOpen(false);
-      }
-    } catch (error) {
-      toast.error("Failed to import data");
-    }
-  };
-
-  const handleClearAllData = () => {
-    if (confirm("Are you sure you want to clear all data? This action cannot be undone.")) {
-      clearAllData();
-      toast.success("All data cleared");
-    }
-  };
-
   return (
     <div>
       <PageHeader title="Dashboard" subtitle="Overview of your herd & production" actions={
         <>
           <PrintButton />
-          <Button variant="outline" onClick={handleExportData}>
-            <Download className="h-4 w-4 mr-1" />
-            Export Data
-          </Button>
-          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Upload className="h-4 w-4 mr-1" />
-                Import Data
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Import Farm Data</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Paste your exported JSON data below. This will replace all current data.
-                </p>
-                <Textarea
-                  placeholder="Paste your exported data here..."
-                  value={importText}
-                  onChange={(e) => setImportText(e.target.value)}
-                  rows={10}
-                />
-                <div className="flex gap-2">
-                  <Button onClick={handleImportData} className="flex-1">
-                    Import Data
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={handleClearAllData}
-                  >
-                    Clear All Data
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-          <Button variant="outline" onClick={checkStorage}>
-            <Bug className="h-4 w-4 mr-1" />
-            Debug Storage
-          </Button>
           <Dialog open={milkDialogOpen} onOpenChange={setMilkDialogOpen}>
             <DialogTrigger asChild><Button variant="outline"><Milk className="h-4 w-4 mr-1" />Log Milk</Button></DialogTrigger>
             <DialogContent>
@@ -264,6 +222,79 @@ export default function Dashboard() {
               <Bar dataKey="amount" fill="hsl(152, 35%, 18%)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold">Milk Production per Cow</h3>
+              <div className="flex gap-2">
+                <Button variant={timePeriod === 'day' ? 'default' : 'outline'} size="sm" onClick={() => setTimePeriod('day')}>Day</Button>
+                <Button variant={timePeriod === 'week' ? 'default' : 'outline'} size="sm" onClick={() => setTimePeriod('week')}>Week</Button>
+                <Button variant={timePeriod === 'month' ? 'default' : 'outline'} size="sm" onClick={() => setTimePeriod('month')}>Month</Button>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={barData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="milk" fill="hsl(142, 76%, 36%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-4">Proceeds per Cow ($)</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <h3 className="font-semibold mb-4">Production Report & Recommendations</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-primary">{totalProduction.toFixed(1)} L</p>
+              <p className="text-sm text-muted-foreground">Total Milk</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-600">${totalProceeds.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">Total Proceeds</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-600">{avgProduction.toFixed(1)} L</p>
+              <p className="text-sm text-muted-foreground">Avg per Cow</p>
+            </div>
+          </div>
+          <div className="bg-muted p-4 rounded-lg">
+            <h4 className="font-medium mb-2">Recommendations:</h4>
+            <p className="text-sm">{recommendations || "Production is looking good! Keep up the excellent work."}</p>
+          </div>
         </CardContent>
       </Card>
 
