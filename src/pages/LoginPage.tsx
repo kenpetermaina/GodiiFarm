@@ -11,10 +11,39 @@ import CowSlideshow from "@/components/CowSlideshow";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgot, setIsForgot] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+
+  const validateSignUpPassword = (value: string) => {
+    if (value.length < 8) {
+      return "Password must be at least 8 characters long.";
+    }
+
+    if (!/[A-Z]/.test(value)) {
+      return "Password must include at least one uppercase letter.";
+    }
+
+    if (!/[a-z]/.test(value)) {
+      return "Password must include at least one lowercase letter.";
+    }
+
+    if (!/\d/.test(value)) {
+      return "Password must include at least one number.";
+    }
+
+    if (!/[^A-Za-z0-9]/.test(value)) {
+      return "Password must include at least one symbol.";
+    }
+
+    if (/\s/.test(value)) {
+      return "Password cannot contain spaces.";
+    }
+
+    return null;
+  };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +66,17 @@ export default function LoginPage() {
     setLoading(true);
     try {
       if (isSignUp) {
+        if (password !== confirmPassword) {
+          toast.error("Passwords do not match.");
+          return;
+        }
+
+        const passwordValidationError = validateSignUpPassword(password);
+        if (passwordValidationError) {
+          toast.error(passwordValidationError);
+          return;
+        }
+
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         toast.success("Account created! Check your email to verify.");
@@ -85,7 +125,22 @@ export default function LoginPage() {
             <>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={isSignUp ? 8 : 6} />
+                {isSignUp && (
+                  <>
+                    <Input
+                      type="password"
+                      placeholder="Confirm password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      minLength={8}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Use at least 8 characters with uppercase, lowercase, number, and symbol. No spaces.
+                    </p>
+                  </>
+                )}
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="remember-email"
