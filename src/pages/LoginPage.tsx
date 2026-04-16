@@ -7,8 +7,12 @@ import { toast } from "sonner";
 import { Beef } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import CowSlideshow from "@/components/CowSlideshow";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const { login, register } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
@@ -37,19 +41,40 @@ export default function LoginPage() {
     setLoading(true);
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        toast.success("Account created! Check your email to verify.");
+        const name = email.split('@')[0];
+        const res: any = await register({ name: name, email: email, password: password });
+        if (res.status === "success") {
+          toast.success(res.message);
+        } else {
+          toast.error(res.message);
+        }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        toast.success("Welcome back!");
+        const res: any = await login({ email: email, password: password });
+        if (res.status === "success") {
+          toast.success(res.message);
+          setTimeout(() => {
+            navigate("/");
+          }, 100);
+        } else {
+          toast.error(res.message);
+          // console.log("Error: ", ero)
+        }
       }
+      // if (isSignUp) {
+      //   const { error } = await supabase.auth.signUp({ email, password });
+      //   if (error) throw error;
+      //   toast.success("Account created! Check your email to verify.");
+      // } else {
+      //   const { error } = await supabase.auth.signInWithPassword({
+      //     email,
+      //     password,
+      //   });
+      //   if (error) throw error;
+      //   toast.success("Welcome back!");
+      // }
     } catch (err: any) {
       toast.error(err.message);
+      console.log("Error: ", err.response.data || err.message)
     } finally {
       setLoading(false);
     }
