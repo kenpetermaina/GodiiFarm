@@ -7,9 +7,10 @@ import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
+import { useCow } from "@/contexts/CowContext";
 
 export default function MyHerdPage() {
-  const { cows, deleteCow } = useFarmStore();
+  const { cows, deleteCow } = useCow();
 
   return (
     <div>
@@ -19,14 +20,14 @@ export default function MyHerdPage() {
           <Table>
             <TableHeader><TableRow><TableHead>Tag Number</TableHead><TableHead>Name</TableHead><TableHead>Breed</TableHead><TableHead>Date of Birth</TableHead><TableHead>Gender</TableHead><TableHead>Status</TableHead><TableHead className="no-print">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
-              {cows.map((c) => (
+              {cows.map((c: any) => (
                 <TableRow key={c.id}>
-                  <TableCell>{c.tag_number}</TableCell><TableCell>{c.name}</TableCell><TableCell>{c.breed}</TableCell>
-                  <TableCell>{c.date_of_birth ? new Date(c.date_of_birth).toLocaleDateString() : 'N/A'}</TableCell><TableCell>{c.gender}</TableCell>
+                  <TableCell>{c.tag}</TableCell><TableCell>{c.name}</TableCell><TableCell>{c.breed}</TableCell>
+                  <TableCell>{c?.date_of_birth ? new Date(c?.date_of_birth).toLocaleDateString() : 'N/A'}</TableCell><TableCell>{c.gender}</TableCell>
                   <TableCell>
-                    <Badge variant={c.status === "healthy" ? "default" : "destructive"}
-                      className={c.status === "healthy" ? "bg-success" : ""}>
-                      {c.status}
+                    <Badge variant={c.health === "Healthy" ? "default" : "destructive"}
+                      className={c.health === "Healthy" ? "bg-success" : ""}>
+                      {c.health}
                     </Badge>
                   </TableCell>
                   <TableCell className="no-print">

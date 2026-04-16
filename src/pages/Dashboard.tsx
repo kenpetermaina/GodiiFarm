@@ -12,9 +12,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
+// import { useRecord } from "@/contexts/RecordContext";
+import { useCow } from "@/contexts/CowContext";
 
 export default function Dashboard() {
-  const { cows, milkRecords, addCow, addMilkRecord, deleteCow, updateCow } = useFarmStore();
+  // const { cows, milkRecords, addCow, addMilkRecord, deleteCow, updateCow } = useFarmStore();
+  const { milkRecords, addMilkRecord, deleteCow, updateCow } = useFarmStore();
+  // const {  } = useRecord();
+  const { cows, addCow } = useCow();
   const [cowDialogOpen, setCowDialogOpen] = useState(false);
   const [milkDialogOpen, setMilkDialogOpen] = useState(false);
   const [editCow, setEditCow] = useState<any>(null);
@@ -25,8 +30,8 @@ export default function Dashboard() {
 
   const today = new Date().toISOString().split("T")[0];
   const todayMilk = milkRecords.filter((r) => r.date === today).reduce((s, r) => s + r.amount_liters, 0);
-  const healthyCows = cows.filter((c) => c.status === "healthy").length;
-  const needAttention = cows.filter((c) => c.status !== "healthy").length;
+  const healthyCows = cows?.filter((c: any) => c.health === "Healthy").length;
+  const needAttention = cows?.filter((c: any) => c.health !== "Healthy").length;
 
   const getDateRange = (period: 'day' | 'week' | 'month') => {
     const now = new Date();
@@ -51,7 +56,7 @@ export default function Dashboard() {
     const proceeds = totalMilk * 2; // Assume $2 per liter
     return {
       name: cow.name,
-      tag: cow.tag_number,
+      tag: cow.tag,
       milk: totalMilk,
       proceeds
     };
@@ -70,7 +75,7 @@ export default function Dashboard() {
   const recommendations = [
     totalProduction < 50 ? "Consider improving feed quality to boost milk production." : "",
     avgProduction < 5 ? "Some cows are underperforming; check health and nutrition." : "",
-    cowProduction.length < cows.filter(c => c.status === 'healthy').length ? "Not all healthy cows are producing; monitor milking schedule." : "",
+    cowProduction.length < cows.filter((c: any) => c.status === 'healthy').length ? "Not all healthy cows are producing; monitor milking schedule." : "",
     totalProceeds > 1000 ? "Excellent production! Consider expanding herd." : ""
   ].filter(r => r).join(" ");
 
@@ -96,7 +101,7 @@ export default function Dashboard() {
     if (!newCow.tag_number || !newCow.name) return toast.error("Fill required fields");
     try {
       const cow = {
-        tag_number: newCow.tag_number,
+        tag: newCow.tag_number,
         name: newCow.name,
         breed: newCow.breed || null,
         date_of_birth: newCow.date_of_birth || null,
@@ -164,7 +169,7 @@ export default function Dashboard() {
         { name: 'Total', value: cows.length }
       ];
       return {
-        response: `Your herd consists of ${cows.length} total cows. ${healthyCows} are healthy and ${needAttention} need attention. You have ${cows.filter(c => c.gender === 'female').length} females.`,
+        response: `Your herd consists of ${cows.length} total cows. ${healthyCows} are healthy and ${needAttention} need attention. You have ${cows.filter((c: any) => c.gender === 'female').length} females.`,
         chartType: 'herd',
         data: statusData
       };
@@ -217,7 +222,7 @@ export default function Dashboard() {
               <div className="space-y-3">
                 <Select value={newMilk.cow_id} onValueChange={(v) => setNewMilk({ ...newMilk, cow_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Select cow" /></SelectTrigger>
-                  <SelectContent>{cows.map((c) => <SelectItem key={c.id} value={c.id}>{c.tag_number} - {c.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{cows.map((c) => <SelectItem key={c.id} value={c.id}>{c.tag} - {c.name}</SelectItem>)}</SelectContent>
                 </Select>
                 <Input placeholder="Amount (L)" type="number" value={newMilk.amount_liters} onChange={(e) => setNewMilk({ ...newMilk, amount_liters: e.target.value })} />
                 <Select value={newMilk.session} onValueChange={(v: any) => setNewMilk({ ...newMilk, session: v })}>
@@ -537,13 +542,13 @@ export default function Dashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {cows.map((c) => (
+              {cows.map((c: any) => (
                 <TableRow key={c.id}>
-                  <TableCell>{c.tag_number}</TableCell><TableCell>{c.name}</TableCell><TableCell>{c.breed}</TableCell>
-                  <TableCell>{c.date_of_birth ? new Date(c.date_of_birth).toLocaleDateString() : 'N/A'}</TableCell><TableCell>{c.gender}</TableCell>
+                  <TableCell>{c.tag}</TableCell><TableCell>{c.name}</TableCell><TableCell>{c.breed}</TableCell>
+                  <TableCell>{c?.date_of_birth ? new Date(c.date_of_birth).toLocaleDateString() : 'N/A'}</TableCell><TableCell>{c.gender}</TableCell>
                   <TableCell>
-                    <Badge variant={c.status === "healthy" ? "default" : "destructive"}
-                      className={c.status === "healthy" ? "bg-success" : ""}>
+                    <Badge variant={c.status === "Healthy" ? "default" : "destructive"}
+                      className={c.health === "Healthy" ? "bg-success" : ""}>
                       {c.status}
                     </Badge>
                   </TableCell>
