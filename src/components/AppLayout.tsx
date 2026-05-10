@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutDashboard, Beef, Milk, Wheat, HeartPulse, StickyNote, Baby, Bell, BarChart3, Wallet, DollarSign, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, Beef, Milk, Wheat, HeartPulse, StickyNote, Baby, Bell, BarChart3, Wallet, DollarSign, Users, LogOut, Coffee, Calendar, ShoppingCart, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -17,6 +17,12 @@ const links = [
   { to: "/expenses", icon: Wallet, label: "Expenses" },
   { to: "/income", icon: DollarSign, label: "Income" },
   { to: "/workers", icon: Users, label: "Farm Workers" },
+  { to: "/coffee-farm", icon: Coffee, label: "Coffee Farm" },
+  { to: "/coffee-harvest", icon: Calendar, label: "Coffee Harvest" },
+  { to: "/coffee-sales", icon: ShoppingCart, label: "Coffee Sales" },
+  { to: "/coffee-expenses", icon: Wallet, label: "Coffee Expenses" },
+  { to: "/coffee-workers", icon: Users, label: "Coffee Workers" },
+  { to: "/coffee-reports", icon: FileText, label: "Coffee Reports" },
 ];
 
 export default function AppLayout() {
@@ -32,8 +38,8 @@ export default function AppLayout() {
     <div className="flex min-h-screen">
       <aside className="no-print w-40 bg-sidebar text-sidebar-foreground flex flex-col shrink-0">
         <div className="p-4 flex items-center gap-2 font-bold text-lg">
-          <Beef className="h-6 w-6" />
-          CowTrack
+          <Coffee className="h-6 w-6" />
+          FarmTrack Pro
         </div>
         <nav className="flex-1 flex flex-col gap-0.5 px-2">
           {links.map((l) => (

@@ -22,6 +22,12 @@ import IncomePage from "@/pages/IncomePage";
 import WorkersPage from "@/pages/WorkersPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NotFound from "@/pages/NotFound";
+import CoffeeFarmPage from "@/pages/CoffeeFarmPage";
+import CoffeeHarvestPage from "@/pages/CoffeeHarvestPage";
+import CoffeeSalesPage from "@/pages/CoffeeSalesPage";
+import CoffeeExpensesPage from "@/pages/CoffeeExpensesPage";
+import CoffeeWorkersPage from "@/pages/CoffeeWorkersPage";
+import CoffeeReportsPage from "@/pages/CoffeeReportsPage";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CowProvider } from "./contexts/CowContext";
 import { RecordProvider } from "./contexts/RecordContext";
@@ -60,6 +66,12 @@ const App = () => (
                   <Route path="/expenses" element={<ExpensesPage />} />
                   <Route path="/income" element={<IncomePage />} />
                   <Route path="/workers" element={<WorkersPage />} />
+                  <Route path="/coffee-farm" element={<CoffeeFarmPage />} />
+                  <Route path="/coffee-harvest" element={<CoffeeHarvestPage />} />
+                  <Route path="/coffee-sales" element={<CoffeeSalesPage />} />
+                  <Route path="/coffee-expenses" element={<CoffeeExpensesPage />} />
+                  <Route path="/coffee-workers" element={<CoffeeWorkersPage />} />
+                  <Route path="/coffee-reports" element={<CoffeeReportsPage />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

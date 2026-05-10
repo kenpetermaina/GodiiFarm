@@ -14,12 +14,23 @@ import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
 // import { useRecord } from "@/contexts/RecordContext";
 import { useCow } from "@/contexts/CowContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function Dashboard() {
   // const { cows, milkRecords, addCow, addMilkRecord, deleteCow, updateCow } = useFarmStore();
-  const { milkRecords, addMilkRecord, deleteCow, updateCow } = useFarmStore();
+  const { milkRecords, addMilkRecord } = useFarmStore();
   // const {  } = useRecord();
-  const { cows, addCow } = useCow();
+  const { cows, addCow, deleteCow } = useCow();
   const [cowDialogOpen, setCowDialogOpen] = useState(false);
   const [milkDialogOpen, setMilkDialogOpen] = useState(false);
   const [editCow, setEditCow] = useState<any>(null);
@@ -555,7 +566,34 @@ export default function Dashboard() {
                   <TableCell className="no-print">
                     <div className="flex gap-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => { deleteCow(c.id); toast.success("Deleted"); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the cow "{c.name}" with tag "{c.tag}".
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={async () => { 
+                              try {
+                                await deleteCow(c.id); 
+                                toast.success("Cow deleted successfully"); 
+                              } catch (error) {
+                                toast.error("Failed to delete cow");
+                              }
+                            }}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
