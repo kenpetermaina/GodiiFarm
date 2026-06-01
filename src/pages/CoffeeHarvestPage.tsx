@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { } from "react";
+import { useFarmStore } from "@/store/farmStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,37 +9,39 @@ import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
 
 export default function CoffeeHarvestPage() {
-  const [harvests] = useState([
-    {
-      id: 1,
-      harvestDate: "2024-03-15",
-      quantity: 250,
-      qualityGrade: "Premium",
-      collectedBy: "John Doe",
-      sellingPrice: 150,
-      buyerName: "Kenya Coffee Company",
-      totalEarnings: 37500
-    },
-    {
-      id: 2,
-      harvestDate: "2024-02-28",
-      quantity: 200,
-      qualityGrade: "Standard",
-      collectedBy: "Jane Smith",
-      sellingPrice: 120,
-      buyerName: "Local Market",
-      totalEarnings: 24000
-    }
-  ]);
+  const { coffeeHarvests, addCoffeeHarvest, updateCoffeeHarvest, deleteCoffeeHarvest } = useFarmStore();
+
+  function handleAddHarvest() {
+    const harvestDate = window.prompt("Harvest Date (YYYY-MM-DD):", new Date().toISOString().slice(0, 10));
+    if (!harvestDate) return;
+    const quantity = parseFloat(window.prompt("Quantity (Kg):", "0") || "0") || 0;
+    const qualityGrade = window.prompt("Quality Grade:", "Standard") || "Standard";
+    const collectedBy = window.prompt("Collected By:", "") || "";
+    const sellingPrice = parseFloat(window.prompt("Selling Price (KSh/kg):", "0") || "0") || 0;
+    const buyerName = window.prompt("Buyer Name:", "") || "";
+
+    addCoffeeHarvest({ harvestDate, quantity, qualityGrade, collectedBy, sellingPrice, buyerName });
+  }
+
+  function handleEditHarvest(h: any) {
+    const harvestDate = window.prompt("Harvest Date (YYYY-MM-DD):", h.harvestDate) || h.harvestDate;
+    const quantity = parseFloat(window.prompt("Quantity (Kg):", String(h.quantity)) || String(h.quantity)) || h.quantity;
+    const qualityGrade = window.prompt("Quality Grade:", h.qualityGrade) || h.qualityGrade;
+    const collectedBy = window.prompt("Collected By:", h.collectedBy) || h.collectedBy;
+    const sellingPrice = parseFloat(window.prompt("Selling Price (KSh/kg):", String(h.sellingPrice || 0)) || String(h.sellingPrice || 0)) || h.sellingPrice;
+    const buyerName = window.prompt("Buyer Name:", h.buyerName) || h.buyerName;
+
+    updateCoffeeHarvest(h.id, { harvestDate, quantity, qualityGrade, collectedBy, sellingPrice, buyerName });
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader title="Coffee Harvest Management" subtitle="Track coffee harvests and sales" actions={<PrintButton />} />
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Harvest Records</CardTitle>
-          <Button>
+          <Button onClick={handleAddHarvest}>
             <Plus className="h-4 w-4 mr-2" />
             Add Harvest
           </Button>
@@ -58,7 +61,7 @@ export default function CoffeeHarvestPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {harvests.map((harvest) => (
+              {coffeeHarvests.map((harvest) => (
                 <TableRow key={harvest.id}>
                   <TableCell>{new Date(harvest.harvestDate).toLocaleDateString()}</TableCell>
                   <TableCell>{harvest.quantity}</TableCell>
@@ -70,9 +73,10 @@ export default function CoffeeHarvestPage() {
                   <TableCell>{harvest.collectedBy}</TableCell>
                   <TableCell>{harvest.sellingPrice}</TableCell>
                   <TableCell>{harvest.buyerName}</TableCell>
-                  <TableCell>{harvest.totalEarnings.toLocaleString()}</TableCell>
+                  <TableCell>{(harvest.totalEarnings || 0).toLocaleString()}</TableCell>
                   <TableCell className="no-print">
-                    <Button variant="ghost" size="sm">Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleEditHarvest(harvest)}>Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteCoffeeHarvest(harvest.id)}>Delete</Button>
                   </TableCell>
                 </TableRow>
               ))}

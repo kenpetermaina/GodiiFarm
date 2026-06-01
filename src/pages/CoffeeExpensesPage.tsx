@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo } from "react";
+import { useFarmStore } from "@/store/farmStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,58 +8,20 @@ import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
 
 export default function CoffeeExpensesPage() {
-  const [expenses] = useState([
-    {
-      id: 1,
-      category: "Fertilizer",
-      description: "NPK Fertilizer for coffee trees",
-      amount: 15000,
-      date: "2024-02-15",
-      icon: Sprout
-    },
-    {
-      id: 2,
-      category: "Pesticides",
-      description: "Coffee berry borer treatment",
-      amount: 8000,
-      date: "2024-01-20",
-      icon: Bug
-    },
-    {
-      id: 3,
-      category: "Labor",
-      description: "Harvesting labor costs",
-      amount: 25000,
-      date: "2024-03-15",
-      icon: Users
-    },
-    {
-      id: 4,
-      category: "Transport",
-      description: "Coffee transport to market",
-      amount: 5000,
-      date: "2024-03-20",
-      icon: Truck
-    },
-    {
-      id: 5,
-      category: "Equipment",
-      description: "Pruning tools maintenance",
-      amount: 3000,
-      date: "2024-02-28",
-      icon: Wrench
-    },
-    {
-      id: 6,
-      category: "Irrigation",
-      description: "Drip irrigation system maintenance",
-      amount: 12000,
-      date: "2024-03-01",
-      icon: Droplets
-    }
-  ]);
+  const { coffeeExpenses, addCoffeeExpense, updateCoffeeExpense, deleteCoffeeExpense } = useFarmStore();
 
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const totalExpenses = useMemo(() => coffeeExpenses.reduce((sum, e) => sum + (e.amount || 0), 0), [coffeeExpenses]);
+
+  function handleAddExpense() {
+    const date = window.prompt("Expense Date (YYYY-MM-DD):", new Date().toISOString().slice(0, 10));
+    if (!date) return;
+    const category = window.prompt("Category:", "") || "";
+    const description = window.prompt("Description:", "") || "";
+    const amount = parseFloat(window.prompt("Amount:", "0") || "0") || 0;
+    addCoffeeExpense({ date, category, description, amount });
+  }
+
+  const expenses = useMemo(() => coffeeExpenses, [coffeeExpenses]);
 
   return (
     <div className="space-y-6">
@@ -78,9 +41,9 @@ export default function CoffeeExpensesPage() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Expense Records</CardTitle>
-          <Button>
+          <Button onClick={handleAddExpense}>
             <Plus className="h-4 w-4 mr-2" />
             Add Expense
           </Button>
@@ -101,15 +64,15 @@ export default function CoffeeExpensesPage() {
                 <TableRow key={expense.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <expense.icon className="h-4 w-4" />
+                      <Sprout className="h-4 w-4" />
                       {expense.category}
                     </div>
                   </TableCell>
                   <TableCell>{expense.description}</TableCell>
-                  <TableCell>{expense.amount.toLocaleString()}</TableCell>
+                  <TableCell>{(expense.amount || 0).toLocaleString()}</TableCell>
                   <TableCell>{new Date(expense.date).toLocaleDateString()}</TableCell>
                   <TableCell className="no-print">
-                    <Button variant="ghost" size="sm">Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteCoffeeExpense(expense.id)}>Delete</Button>
                   </TableCell>
                 </TableRow>
               ))}

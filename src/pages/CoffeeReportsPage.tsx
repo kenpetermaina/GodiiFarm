@@ -3,34 +3,20 @@ import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { Download, TrendingUp, DollarSign, Coffee, Users } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import { useMemo } from "react";
+import { useFarmStore } from "@/store/farmStore";
 
 export default function CoffeeReportsPage() {
-  // Mock data for charts
-  const monthlyHarvestData = [
-    { month: "Jan", harvest: 120 },
-    { month: "Feb", harvest: 150 },
-    { month: "Mar", harvest: 200 },
-    { month: "Apr", harvest: 180 },
-    { month: "May", harvest: 160 },
-    { month: "Jun", harvest: 140 }
-  ];
+  const { coffeeHarvests, coffeeSales, coffeeExpenses } = useFarmStore();
 
-  const expenseData = [
-    { name: "Fertilizer", value: 15000, color: "#8884d8" },
-    { name: "Labor", value: 25000, color: "#82ca9d" },
-    { name: "Pesticides", value: 8000, color: "#ffc658" },
-    { name: "Transport", value: 5000, color: "#ff7300" },
-    { name: "Equipment", value: 3000, color: "#00ff00" }
-  ];
+  const totalProduction = useMemo(() => coffeeHarvests.reduce((s, h) => s + (h.quantity || 0), 0), [coffeeHarvests]);
+  const totalRevenue = useMemo(() => coffeeSales.reduce((s, r) => s + (r.totalAmount || (r.quantitySold * r.pricePerKg) || 0), 0), [coffeeSales]);
+  const totalExpense = useMemo(() => coffeeExpenses.reduce((s, e) => s + (e.amount || 0), 0), [coffeeExpenses]);
+  const netProfit = totalRevenue - totalExpense;
 
-  const profitData = [
-    { month: "Jan", income: 18000, expenses: 8000, profit: 10000 },
-    { month: "Feb", income: 22500, expenses: 9500, profit: 13000 },
-    { month: "Mar", income: 30000, expenses: 12000, profit: 18000 },
-    { month: "Apr", income: 27000, expenses: 11000, profit: 16000 },
-    { month: "May", income: 24000, expenses: 10000, profit: 14000 },
-    { month: "Jun", income: 21000, expenses: 9000, profit: 12000 }
-  ];
+  const monthlyHarvestData = [];
+  const expenseData = [];
+  const profitData = [];
 
   return (
     <div className="space-y-6">
@@ -44,7 +30,7 @@ export default function CoffeeReportsPage() {
             <Coffee className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">950 kg</div>
+            <div className="text-2xl font-bold">{totalProduction.toLocaleString()} kg</div>
             <p className="text-xs text-muted-foreground">This season</p>
           </CardContent>
         </Card>
@@ -55,7 +41,7 @@ export default function CoffeeReportsPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">KSh 142,500</div>
+            <div className="text-2xl font-bold">KSh {totalRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">This season</p>
           </CardContent>
         </Card>
@@ -66,7 +52,7 @@ export default function CoffeeReportsPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">KSh 66,500</div>
+            <div className="text-2xl font-bold">KSh {totalExpense.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">This season</p>
           </CardContent>
         </Card>
@@ -77,7 +63,7 @@ export default function CoffeeReportsPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">KSh 76,000</div>
+            <div className="text-2xl font-bold">KSh {netProfit.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">This season</p>
           </CardContent>
         </Card>
