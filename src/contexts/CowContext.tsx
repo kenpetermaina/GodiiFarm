@@ -46,15 +46,6 @@ const initialState: CowState = {
 
 export const CowProvider: React.FC<CowProviderProps> = ({ children }) => {
     const [state, setState] = useState<CowState>(initialState);
-    const [cows, setCows] = useState([]);
-
-    const getCow = async () => {
-        try {
-
-        } catch (error) {
-            console.log("Error: ",);
-        }
-    }
 
     // Fetch all cows with filters and pagination
     const fetchCows = useCallback(async (
@@ -66,14 +57,12 @@ export const CowProvider: React.FC<CowProviderProps> = ({ children }) => {
             setState(prev => ({ ...prev, isLoading: true, error: null }));
 
             const response = await cowApi.getCows();
-            // console.log("response: ", response);
             setState(prev => ({
                 ...prev,
                 cows: response.data,
                 pagination: response.pagination,
                 isLoading: false,
             }));
-            setCows(response.data);
         } catch (error: any) {
             setState(prev => ({
                 ...prev,
@@ -82,12 +71,11 @@ export const CowProvider: React.FC<CowProviderProps> = ({ children }) => {
             }));
             throw error;
         }
-    }, [state.filters]);
+    }, []);
 
     useEffect(() => {
         fetchCows();
-        // console.log("Cows: ", cows);
-    }, [cows]);
+    }, [fetchCows]);
 
     // Fetch single cow by ID
     const fetchCowById = useCallback(async (id: string): Promise<void> => {
@@ -350,7 +338,7 @@ export const CowProvider: React.FC<CowProviderProps> = ({ children }) => {
 
     const value: CowContextType = {
         ...state,
-        cows,
+        cows: state.cows,
         fetchCows,
         fetchCowById,
         addCow,

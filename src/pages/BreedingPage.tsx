@@ -1,3 +1,4 @@
+import { useCow } from "@/contexts/CowContext";
 import { useFarmStore } from "@/store/farmStore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +13,8 @@ import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
 
 export default function BreedingPage() {
-  const { breedingRecords, addBreedingRecord, deleteBreedingRecord, cows } = useFarmStore();
+  const { breedingRecords, addBreedingRecord, deleteBreedingRecord } = useFarmStore();
+  const { cows } = useCow();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ cowId: "", status: "", heatDate: "", serviceDate: "", expectedCalving: "" });
 

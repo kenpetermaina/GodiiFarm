@@ -41,7 +41,7 @@ export const cowApi = {
 
   // Get single cow by ID
   getCowById: (id: string): Promise<CowResponse> => {
-    return api.get<CowResponse>(`/cows/${id}`);
+    return api.get<CowResponse>(`/v1/cows/${id}`);
   },
 
   // Create new cow
@@ -52,27 +52,27 @@ export const cowApi = {
 
   // Update cow
   updateCow: (id: string, data: UpdateCowData): Promise<CowResponse> => {
-    return api.patch<CowResponse>(`/cows/${id}`, data);
+    return api.patch<CowResponse>(`/v1/cows/${id}`, data);
   },
 
   // Delete cow
   deleteCow: (id: string): Promise<void> => {
-    return api.delete<void>(`/cows/${id}`);
+    return api.delete<void>(`/v1/cows/${id}`);
   },
 
   // Bulk create cows
   createMultipleCows: (cows: CreateCowData[]): Promise<{ cows: Cow[] }> => {
-    return api.post<{ cows: Cow[] }>('/cows/bulk', { cows });
+    return api.post<{ cows: Cow[] }>('/v1/cows/bulk', { cows });
   },
 
   // Bulk update cows
   updateMultipleCows: (updates: Array<{ id: string; data: UpdateCowData }>): Promise<{ cows: Cow[] }> => {
-    return api.patch<{ cows: Cow[] }>('/cows/bulk', { updates });
+    return api.patch<{ cows: Cow[] }>('/v1/cows/bulk', { updates });
   },
 
   // Bulk delete cows
   deleteMultipleCows: (ids: string[]): Promise<void> => {
-    return api.delete<void>('/cows/bulk', { data: { ids } });
+    return api.delete<void>('/v1/cows/bulk', { data: { ids } });
   },
 
   // Get cow statistics
