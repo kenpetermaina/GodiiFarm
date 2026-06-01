@@ -85,6 +85,15 @@ export default function MyHerdPage() {
     }
   };
 
+  const handleDeleteCow = async (id: string) => {
+    try {
+      await deleteCow(id);
+      toast.success('Cow deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete cow');
+    }
+  };
+
   return (
     <div>
       <PageHeader
@@ -215,13 +224,8 @@ export default function MyHerdPage() {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={async () => {
-                                try {
-                                  await deleteCow(c.id);
-                                  toast.success('Cow deleted successfully');
-                                } catch (error) {
-                                  toast.error('Failed to delete cow');
-                                }
+                              onClick={() => {
+                                void handleDeleteCow(c.id);
                               }}
                             >
                               Delete
