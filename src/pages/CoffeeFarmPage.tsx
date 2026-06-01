@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { } from "react";
+import { useFarmStore } from "@/store/farmStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,34 +9,93 @@ import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
 
 export default function CoffeeFarmPage() {
-  // Mock data for demonstration
-  const [coffeeFarms] = useState([
-    {
-      id: 1,
-      name: "Main Coffee Farm",
-      location: "Ruiru, Kenya",
-      variety: "Arabica",
-      size: 50,
-      trees: 2500,
-      plantedDate: "2020-03-15",
-      soilType: "Volcanic",
-      irrigation: "Drip Irrigation"
-    }
-  ]);
+  // Coffee data from global store
+  const {
+    coffeeFarms,
+    coffeeTrees,
+    addCoffeeFarm,
+    updateCoffeeFarm,
+    deleteCoffeeFarm,
+    addCoffeeTree,
+    updateCoffeeTree,
+    deleteCoffeeTree,
+  } = useFarmStore();
 
-  const [coffeeTrees] = useState([
-    {
-      id: 1,
-      treeId: "CF001",
-      variety: "Arabica",
-      plantedDate: "2020-03-15",
-      age: 4,
-      health: "Healthy",
-      productionRate: "High",
-      lastFertilized: "2024-02-15",
-      lastSprayed: "2024-01-20"
-    }
-  ]);
+  // Simple CRUD handlers using browser prompts for quick editability
+  function handleAddFarm() {
+    const name = window.prompt("Farm name:");
+    if (!name) return;
+    const location = window.prompt("Location:") || "";
+    const variety = window.prompt("Variety:") || "";
+    const size = parseFloat(window.prompt("Size (acres):") || "0") || 0;
+    const trees = parseInt(window.prompt("Number of trees:") || "0") || 0;
+    const soilType = window.prompt("Soil type:") || "";
+    const irrigation = window.prompt("Irrigation type:") || "";
+
+    addCoffeeFarm({
+      name,
+      location,
+      variety,
+      size,
+      trees,
+      plantedDate: new Date().toISOString().slice(0, 10),
+      soilType,
+      irrigation,
+    });
+  }
+
+  function handleEditFarm(farm: any) {
+    const name = window.prompt("Farm name:", farm.name) || farm.name;
+    const location = window.prompt("Location:", farm.location) || farm.location;
+    const variety = window.prompt("Variety:", farm.variety) || farm.variety;
+    const size = parseFloat(window.prompt("Size (acres):", String(farm.size)) || String(farm.size)) || farm.size;
+    const trees = parseInt(window.prompt("Number of trees:", String(farm.trees)) || String(farm.trees)) || farm.trees;
+    const soilType = window.prompt("Soil type:", farm.soilType) || farm.soilType;
+    const irrigation = window.prompt("Irrigation type:", farm.irrigation) || farm.irrigation;
+    updateCoffeeFarm(farm.id, { name, location, variety, size, trees, soilType, irrigation });
+  }
+
+  function handleDeleteFarm(id: number) {
+    if (!window.confirm("Delete this farm?")) return;
+    deleteCoffeeFarm(id);
+  }
+
+  function handleAddTree() {
+    const treeId = window.prompt("Tree ID:") || `T${Date.now()}`;
+    const variety = window.prompt("Variety:") || "";
+    const age = parseInt(window.prompt("Age (years):") || "0") || 0;
+    const health = window.prompt("Health (Healthy/Suspect):") || "Healthy";
+    const productionRate = window.prompt("Production Rate:") || "";
+    const lastFertilized = window.prompt("Last Fertilized (YYYY-MM-DD):") || new Date().toISOString().slice(0, 10);
+    const lastSprayed = window.prompt("Last Sprayed (YYYY-MM-DD):") || new Date().toISOString().slice(0, 10);
+
+    addCoffeeTree({
+      treeId,
+      variety,
+      plantedDate: new Date().toISOString().slice(0, 10),
+      age,
+      health,
+      productionRate,
+      lastFertilized,
+      lastSprayed,
+    });
+  }
+
+  function handleEditTree(tree: any) {
+    const treeId = window.prompt("Tree ID:", tree.treeId) || tree.treeId;
+    const variety = window.prompt("Variety:", tree.variety) || tree.variety;
+    const age = parseInt(window.prompt("Age (years):", String(tree.age)) || String(tree.age)) || tree.age;
+    const health = window.prompt("Health:", tree.health) || tree.health;
+    const productionRate = window.prompt("Production Rate:", tree.productionRate) || tree.productionRate;
+    const lastFertilized = window.prompt("Last Fertilized (YYYY-MM-DD):", tree.lastFertilized) || tree.lastFertilized;
+    const lastSprayed = window.prompt("Last Sprayed (YYYY-MM-DD):", tree.lastSprayed) || tree.lastSprayed;
+    updateCoffeeTree(tree.id, { treeId, variety, age, health, productionRate, lastFertilized, lastSprayed });
+  }
+
+  function handleDeleteTree(id: number) {
+    if (!window.confirm("Delete this tree?")) return;
+    deleteCoffeeTree(id);
+  }
 
   const stats = {
     totalTrees: 2500,
@@ -118,7 +178,7 @@ export default function CoffeeFarmPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Coffee Farms</CardTitle>
-          <Button>
+          <Button onClick={handleAddFarm}>
             <Plus className="h-4 w-4 mr-2" />
             Add Farm
           </Button>
@@ -146,7 +206,8 @@ export default function CoffeeFarmPage() {
                   <TableCell>{farm.trees}</TableCell>
                   <TableCell>{farm.soilType}</TableCell>
                   <TableCell className="no-print">
-                    <Button variant="ghost" size="sm">Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleEditFarm(farm)}>Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteFarm(farm.id)}>Delete</Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -159,7 +220,7 @@ export default function CoffeeFarmPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Coffee Trees</CardTitle>
-          <Button>
+          <Button onClick={handleAddTree}>
             <Plus className="h-4 w-4 mr-2" />
             Add Tree
           </Button>
@@ -193,7 +254,8 @@ export default function CoffeeFarmPage() {
                   <TableCell>{new Date(tree.lastFertilized).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(tree.lastSprayed).toLocaleDateString()}</TableCell>
                   <TableCell className="no-print">
-                    <Button variant="ghost" size="sm">Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleEditTree(tree)}>Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteTree(tree.id)}>Delete</Button>
                   </TableCell>
                 </TableRow>
               ))}

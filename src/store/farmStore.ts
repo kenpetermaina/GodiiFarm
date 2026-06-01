@@ -114,6 +114,30 @@ export interface Worker {
   status: 'Active' | 'Inactive';
 }
 
+export interface CoffeeFarm {
+  id: number | string;
+  name: string;
+  location?: string;
+  variety?: string;
+  size?: number;
+  trees?: number;
+  plantedDate?: string;
+  soilType?: string;
+  irrigation?: string;
+}
+
+export interface CoffeeTree {
+  id: number | string;
+  treeId: string;
+  variety?: string;
+  plantedDate?: string;
+  age?: number;
+  health?: string;
+  productionRate?: string;
+  lastFertilized?: string;
+  lastSprayed?: string;
+}
+
 interface FarmStore {
   // Data
   cows: Cow[];
@@ -126,6 +150,8 @@ interface FarmStore {
   expenses: Expense[];
   incomeRecords: IncomeRecord[];
   workers: Worker[];
+  coffeeFarms: CoffeeFarm[];
+  coffeeTrees: CoffeeTree[];
 
   // Loading states
   loading: boolean;
@@ -155,6 +181,13 @@ interface FarmStore {
   addWorker: (w: Worker) => void;
   updateWorker: (w: Worker) => void;
   deleteWorker: (id: string) => void;
+  // Coffee operations
+  addCoffeeFarm: (farm: Omit<CoffeeFarm, 'id'>) => void;
+  updateCoffeeFarm: (id: number | string, updates: Partial<CoffeeFarm>) => void;
+  deleteCoffeeFarm: (id: number | string) => void;
+  addCoffeeTree: (tree: Omit<CoffeeTree, 'id'>) => void;
+  updateCoffeeTree: (id: number | string, updates: Partial<CoffeeTree>) => void;
+  deleteCoffeeTree: (id: number | string) => void;
   clearError: () => void;
 
   // Data management
@@ -178,6 +211,8 @@ export const useFarmStore = create<FarmStore>()(
       expenses: [],
       incomeRecords: [],
       workers: [],
+      coffeeFarms: [],
+      coffeeTrees: [],
       loading: false,
       error: null,
 
@@ -365,6 +400,43 @@ export const useFarmStore = create<FarmStore>()(
         }));
       },
 
+      // Coffee operations
+      addCoffeeFarm: (farmData) => {
+        const newFarm: CoffeeFarm = {
+          ...farmData,
+          id: Date.now(),
+        };
+        set((state) => ({ coffeeFarms: [newFarm, ...state.coffeeFarms] }));
+      },
+
+      updateCoffeeFarm: (id, updates) => {
+        set((state) => ({
+          coffeeFarms: state.coffeeFarms.map((f) => (f.id === id ? { ...f, ...updates } : f)),
+        }));
+      },
+
+      deleteCoffeeFarm: (id) => {
+        set((state) => ({ coffeeFarms: state.coffeeFarms.filter((f) => f.id !== id) }));
+      },
+
+      addCoffeeTree: (treeData) => {
+        const newTree: CoffeeTree = {
+          ...treeData,
+          id: Date.now(),
+        };
+        set((state) => ({ coffeeTrees: [newTree, ...state.coffeeTrees] }));
+      },
+
+      updateCoffeeTree: (id, updates) => {
+        set((state) => ({
+          coffeeTrees: state.coffeeTrees.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+        }));
+      },
+
+      deleteCoffeeTree: (id) => {
+        set((state) => ({ coffeeTrees: state.coffeeTrees.filter((t) => t.id !== id) }));
+      },
+
       clearError: () => {
         set({ error: null });
       },
@@ -383,6 +455,8 @@ export const useFarmStore = create<FarmStore>()(
           expenses: state.expenses,
           incomeRecords: state.incomeRecords,
           workers: state.workers,
+          coffeeFarms: state.coffeeFarms,
+          coffeeTrees: state.coffeeTrees,
           exportedAt: new Date().toISOString(),
           version: '1.0'
         };
@@ -423,6 +497,8 @@ export const useFarmStore = create<FarmStore>()(
             expenses: importedData.expenses || [],
             incomeRecords: importedData.incomeRecords || [],
             workers: importedData.workers || [],
+            coffeeFarms: importedData.coffeeFarms || [],
+            coffeeTrees: importedData.coffeeTrees || [],
           });
 
           return true;
@@ -445,6 +521,8 @@ export const useFarmStore = create<FarmStore>()(
           expenses: [],
           incomeRecords: [],
           workers: [],
+          coffeeFarms: [],
+          coffeeTrees: [],
           error: null,
         });
       },
@@ -463,6 +541,8 @@ export const useFarmStore = create<FarmStore>()(
         expenses: state.expenses,
         incomeRecords: state.incomeRecords,
         workers: state.workers,
+        coffeeFarms: state.coffeeFarms,
+        coffeeTrees: state.coffeeTrees,
       }),
       onRehydrateStorage: () => (state) => {
         console.log('Data rehydrated from localStorage:', state);
