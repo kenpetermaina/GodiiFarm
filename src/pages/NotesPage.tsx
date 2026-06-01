@@ -1,3 +1,4 @@
+import { useCow } from "@/contexts/CowContext";
 import { useFarmStore } from "@/store/farmStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,8 @@ import PageHeader from "@/components/PageHeader";
 import PrintButton from "@/components/PrintButton";
 
 export default function NotesPage() {
-  const { notes, addNote, deleteNote, cows } = useFarmStore();
+  const { notes, addNote, deleteNote } = useFarmStore();
+  const { cows } = useCow();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ cowId: "", content: "" });
 

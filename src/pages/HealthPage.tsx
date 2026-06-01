@@ -1,3 +1,4 @@
+import { useCow } from "@/contexts/CowContext";
 import { useFarmStore } from "@/store/farmStore";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +14,8 @@ import PrintButton from "@/components/PrintButton";
 import { downloadCSV } from "@/lib/downloadUtils";
 
 export default function HealthPage() {
-  const { healthRecords, addHealthRecord, deleteHealthRecord, cows } = useFarmStore();
+  const { healthRecords, addHealthRecord, deleteHealthRecord } = useFarmStore();
+  const { cows } = useCow();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ cow_id: "", illness: "", treatment: "", vet_name: "", visit_date: "" });
 
@@ -47,7 +49,7 @@ export default function HealthPage() {
     setOpen(false);
   };
 
-  const getCowName = (id: string) => { const c = cows.find((c) => c.id === id); return c ? `${c.tag_number} - ${c.name}` : id; };
+  const getCowName = (id: string) => { const c = cows.find((c) => c.id === id); return c ? `${c.tag} - ${c.name}` : id; };
 
   return (
     <div>
@@ -65,7 +67,7 @@ export default function HealthPage() {
               <div className="space-y-3">
                 <Select value={form.cow_id} onValueChange={(v) => setForm({ ...form, cow_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Select cow" /></SelectTrigger>
-                  <SelectContent>{cows.map((c) => <SelectItem key={c.id} value={c.id}>{c.tag_number} - {c.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{cows.map((c) => <SelectItem key={c.id} value={c.id}>{c.tag} - {c.name}</SelectItem>)}</SelectContent>
                 </Select>
                 <Input placeholder="Illness/Diagnosis" value={form.illness} onChange={(e) => setForm({ ...form, illness: e.target.value })} />
                 <Input placeholder="Treatment" value={form.treatment} onChange={(e) => setForm({ ...form, treatment: e.target.value })} />
