@@ -160,17 +160,8 @@ export const CowProvider: React.FC<CowProviderProps> = ({ children }) => {
 
             await cowApi.deleteCow(id);
 
-            setState(prev => ({
-                ...prev,
-                cows: prev.cows.filter(cow => cow.id !== id),
-                selectedCow: prev.selectedCow?.id === id ? null : prev.selectedCow,
-                isLoading: false,
-                pagination: {
-                    ...prev.pagination,
-                    total: prev.pagination.total - 1,
-                    totalPages: Math.ceil((prev.pagination.total - 1) / prev.pagination.limit),
-                },
-            }));
+            // Refresh the herd after deletion to keep the UI in sync
+            await fetchCows();
         } catch (error: any) {
             setState(prev => ({
                 ...prev,
@@ -179,7 +170,7 @@ export const CowProvider: React.FC<CowProviderProps> = ({ children }) => {
             }));
             throw error;
         }
-    }, []);
+    }, [fetchCows]);
 
     // Bulk create cows
     const createMultipleCows = useCallback(async (cows: CreateCowData[]): Promise<Cow[]> => {
