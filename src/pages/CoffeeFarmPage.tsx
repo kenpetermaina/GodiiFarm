@@ -1,4 +1,4 @@
-import { } from "react";
+import { useMemo } from "react";
 import { useFarmStore } from "@/store/farmStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,15 +97,18 @@ export default function CoffeeFarmPage() {
     deleteCoffeeTree(id);
   }
 
-  const stats = {
-    totalTrees: 2500,
-    totalAcres: 50,
-    harvestThisSeason: 1250,
-    expectedProduction: 1500,
-    workersAssigned: 15,
-    incomeGenerated: 75000,
-    expenses: 25000
-  };
+  const { coffeeHarvests, coffeeSales, coffeeExpenses, coffeeWorkers } = useFarmStore();
+
+  const stats = useMemo(() => {
+    const totalTrees = coffeeTrees.length || 0;
+    const totalAcres = coffeeFarms.reduce((s, f) => s + (f.size || 0), 0);
+    const harvestThisSeason = coffeeHarvests.reduce((s, h) => s + (h.quantity || 0), 0);
+    const expectedProduction = 0;
+    const workersAssigned = coffeeWorkers.length || 0;
+    const incomeGenerated = coffeeSales.reduce((s, c) => s + (c.totalAmount || (c.quantitySold * c.pricePerKg) || 0), 0);
+    const expenses = coffeeExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+    return { totalTrees, totalAcres, harvestThisSeason, expectedProduction, workersAssigned, incomeGenerated, expenses };
+  }, [coffeeFarms, coffeeTrees, coffeeHarvests, coffeeSales, coffeeExpenses, coffeeWorkers]);
 
   return (
     <div className="space-y-6">
